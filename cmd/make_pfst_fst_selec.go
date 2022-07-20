@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fthresh.CombineFstPfst()
+	fthresh.MakeAndRunManhatMakefile()
 }
