@@ -53,6 +53,7 @@ func WriteFile(path, content string) error {
 	}
 	fmt.Fprintln(script, content)
 	script.Close()
+	return nil
 }
 
 func ThreshAndMerge(inpath string, col int, thresh float64, outpath string) (err error) {
