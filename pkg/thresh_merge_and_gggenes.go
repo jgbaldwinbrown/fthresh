@@ -9,6 +9,38 @@ import (
 	"os/exec"
 )
 
+const setupShTxt string = `#!/bin/bash
+set -e
+
+# $1: input selection coefficients
+# $2: input fsts
+# $3: input pfsts
+# $4: output combined data bed
+
+cat "$1" | \
+awkf '{print $1, $2, $3, $4, "selec"}' \
+> "$4"
+
+cat "$2" | \
+awkf '{print $1, $2, $3, $4, "fst"}' \
+>> "$4"
+
+cat "$3" | \
+awkf '{print $1, $2, $3, $9, "pfst"}' \
+>> "$4"
+`
+
+const setupSnpShTxt string = `#!/bin/bash
+set -e
+
+# $1: input snps vcf
+# $2: output edited snps bed
+
+gunzip -c "$1" | \
+awkf '$1!~/^#/ {print $1, $2-1, $2, "snp"}' \
+> "$2"
+`
+
 type GggenesArgs struct {
 	annotpath string
 	datapath string
@@ -104,9 +136,12 @@ func ReadTable(path string) ([][]string, error) {
 // # $3: input pfsts
 // # $4: output combined data bed
 func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string, err error) {
+	err = WriteFile("setup.sh", setupShTxt)
+	if err != nil { return }
+
 	datapath = outpre + "_databed.bed"
 	fmt.Println("data: ", selecpath, fstpath, pfstpath, datapath)
-	cmd := exec.Command("./setup3.sh", selecpath, fstpath, pfstpath, datapath)
+	cmd := exec.Command("./setup.sh", selecpath, fstpath, pfstpath, datapath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -114,9 +149,12 @@ func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string
 }
 
 func MakeSnpBed(snpvcfpath string) (snpbedpath string, err error) {
+	err = WriteFile("setup_snp.sh", setupSnpShTxt)
+	if err != nil { return }
+
 	snpbedpath = snpvcfpath + "_snpbed.bed"
 	fmt.Println(snpvcfpath, snpbedpath)
-	cmd := exec.Command("./setup3snp.sh", snpvcfpath, snpbedpath)
+	cmd := exec.Command("./setup_snp.sh", snpvcfpath, snpbedpath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()

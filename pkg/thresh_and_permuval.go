@@ -46,16 +46,24 @@ awk -F "\t" -v OFS="\t" '$'${1}' >= '${2}'{$3=sprintf("%d", $3); print $0}' \
 bedtools merge -i ${3}_thresholded.bed > ${3}_thresh_merge.bed`
 }
 
+func WriteFile(path, content string) error {
+	script, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(script, content)
+	script.Close()
+}
 
 func ThreshAndMerge(inpath string, col int, thresh float64, outpath string) (err error) {
 	in, err := os.Open(inpath)
 	if err != nil { return }
 	defer in.Close()
 
-	script, err := os.Create("merge_hits_scripted.sh")
-	if err != nil { return }
-	fmt.Fprintln(script, MergeHitsString())
-	script.Close()
+	err = WriteFile("merge_hits_scripted.sh", MergeHitsString())
+	if err != nil {
+		return
+	}
 
 	cmd := exec.Command("bash", "merge_hits_scripted.sh", fmt.Sprint(col), fmt.Sprint(thresh), outpath)
 	cmd.Stdin = in

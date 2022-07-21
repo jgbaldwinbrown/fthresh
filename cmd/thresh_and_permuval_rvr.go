@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fthresh.RunThreshMergeAndPermRvr()
+	fthresh.RunThreshMergePermRvr()
 }
