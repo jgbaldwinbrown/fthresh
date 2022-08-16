@@ -11,6 +11,7 @@ import (
 	// "github.com/jgbaldwinbrown/lscan/pkg"
 	"io"
 	"github.com/jgbaldwinbrown/permuvals/pkg"
+	"github.com/jgbaldwinbrown/pmap/pkg"
 )
 
 func PercThreshMergeAll(set PlotSet, percentile float64) (err error) {
@@ -188,23 +189,12 @@ func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, threads int) (out
 	return outpaths, errs
 }
 
-func PercTMAParallel(set PlotSet, errchan chan error, percentile float64) {
-	err := PercThreshMergeAll(set, percentile)
-	errchan <- err
-}
 func PercTMASets(sets PlotSets, percentile float64) (errors []error) {
-	var errorchans []chan error
-	for _, set := range sets {
-		ec := make(chan error)
-		errorchans = append(errorchans, ec)
-		go PercTMAParallel(set, ec, percentile)
+	f := func(set PlotSet) error {
+		return PercThreshMergeAll(set, percentile)
 	}
-	for _, ec := range errorchans {
-		errors = append(errors, <-ec)
-	}
-	return
+	return pmap.Map(f, sets, -1)
 }
-
 
 func RunGood4Plots() {
 	flags := GetPlot4Flags()

@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"os"
 	"os/exec"
+	"github.com/jgbaldwinbrown/pmap/pkg"
 )
 
 const setupShTxt string = `#!/bin/bash
@@ -81,34 +82,18 @@ func GggenesInternal(annotpath, datapath, snppath, outpath, chr, start, end, hei
 	return cmd.Run()
 }
 
-func GggenesWorker(inputs <-chan GggenesArgs, results chan<- error) {
-	for a := range inputs {
-		results <- Gggenes(a)
-	}
-}
-
 func GggenesBed(bed [][]string, a GggenesArgs, outprefix string) error {
-	numJobs := len(bed)
-	jobs := make(chan GggenesArgs, numJobs)
-	errs := make(chan error, numJobs)
-
-	for i:=0; i<2; i++ {
-		go GggenesWorker(jobs, errs)
-	}
-
+	var inputs []GggenesArgs
 	for _, entry := range bed {
 		a2 := a
 		a2.chr = entry[0]
 		a2.start = entry[1]
 		a2.end = entry[2]
 		a2.outpath = GggenesOut(outprefix, a2.chr, a2.start, a2.end)
-
-		jobs <- a2
+		inputs = append(inputs, a2)
 	}
-	close(jobs)
-
-	for i:=0; i<numJobs; i++ {
-		err := <-errs
+	errs := pmap.Map(Gggenes, inputs, 2)
+	for _, err := range errs {
 		if err != nil {
 			return err
 		}
