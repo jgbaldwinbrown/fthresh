@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"github.com/jgbaldwinbrown/permuvals/pkg"
+	"github.com/jgbaldwinbrown/pmap/pkg"
 )
 
 func ThreshMergeAll(set PlotSet) (err error) {
@@ -17,11 +18,6 @@ func ThreshMergeAll(set PlotSet) (err error) {
 	if err != nil { return }
 
 	return nil
-}
-
-func TMAParallel(set PlotSet, errchan chan error) {
-	err := ThreshMergeAll(set)
-	errchan <- err
 }
 
 func PermAll(bedpaths []string, statistic string, seed int) (err error) {
@@ -72,16 +68,7 @@ func PAParallel(bedpaths []string, statistic string, seed int, errchan chan erro
 }
 
 func TMASets(sets PlotSets) (errors []error) {
-	var errorchans []chan error
-	for _, set := range sets {
-		ec := make(chan error)
-		errorchans = append(errorchans, ec)
-		go TMAParallel(set, ec)
-	}
-	for _, ec := range errorchans {
-		errors = append(errors, <-ec)
-	}
-	return
+	return pmap.Map(ThreshMergeAll, sets, -1)
 }
 
 func PASets(all_bedpaths [][]string, statistics []string) (errors []error) {
