@@ -9,33 +9,46 @@ import (
 )
 
 func AddManhattanPlotSet(m *makem.MakeData, p PlotSet) {
+	pfst_plfmt_noslop := p.Out + "_pfst_plfmt_noslop.bed"
 	pfst_plfmt := p.Out + "_pfst_plfmt.bed"
 	fst_plfmt := p.Out + "_fst_plfmt.bed"
 	selec_plfmt := p.Out + "_selec_plfmt.bed"
 	out := p.Out + "_plot_pfst_fst_selec.png"
+	out_noselec := p.Out + "_plot_pfst_fst.png"
 
 	r := makem.Recipe{}
-	r.AddTargets(pfst_plfmt)
+	r.AddTargets(pfst_plfmt_noslop)
 	r.AddDeps(p.Pfst)
-	r.AddScripts("./plfmt_flex -c 0 -b 2 <$< > $@")
+	r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
+	m.Add(r)
+
+	r = makem.Recipe{}
+	r.AddTargets(pfst_plfmt)
+	r.AddDeps(pfst_plfmt_noslop)
+	r.AddScripts(`awk -F "\t" -v OFS="\t" '{$$2-=24999; $$3+=25000; print $$0}' < $< > $@`)
 	m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(fst_plfmt)
 	r.AddDeps(p.Fst)
-	r.AddScripts("./plfmt_flex -c 0 -b 2 <$< > $@")
+	r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
 	m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(selec_plfmt)
 	r.AddDeps(p.Selec)
-	r.AddScripts("./plfmt_flex -c 0 -b 1 -H <$< > $@")
+	r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
 	m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(out)
 	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt)
 	r.AddScripts("Rscript plot_pfst_fst_selec.R $^ " + out)
+
+	r = makem.Recipe{}
+	r.AddTargets(out_noselec)
+	r.AddDeps(pfst_plfmt, fst_plfmt)
+	r.AddScripts("Rscript plot_pfst_fst.R $^ " + out_noselec)
 	m.Add(r)
 }
 
@@ -54,8 +67,17 @@ func MakeManhatMakefile(r io.Reader) *makem.MakeData {
 
 func MakeAndRunManhatMakefile() {
 	makefile := MakeManhatMakefile(os.Stdin)
+
 	makefile.Fprint(os.Stdout)
-	err := makefile.Exec(makem.UseCores(8), makem.KeepGoing())
+
+	mf, err  := os.Create("manhat_makefile")
+	if err != nil {
+		panic(err)
+	}
+	makefile.Fprint(mf)
+	mf.Close()
+
+	err = makefile.Exec(makem.UseCores(8), makem.KeepGoing())
 	if err != nil {
 		panic(err)
 	}

@@ -14,18 +14,23 @@ type PlotSet struct {
 	Fst string
 	Selec string
 	Out string
+	GoodPfstSpans string
 }
 
 type PlotSets []PlotSet
 
 func ParsePlotSet(s string) PlotSet {
 	line := strings.Split(s, "\t")
-	return PlotSet{
+	set := PlotSet{
 		Pfst: line[0],
 		Fst: line[1],
 		Selec: line[2],
 		Out: line[3],
 	}
+	if len(line) >= 5 {
+		set.GoodPfstSpans = line[4]
+	}
+	return set
 }
 
 func ReadPlotSets(r io.Reader) (ps PlotSets) {
@@ -123,7 +128,7 @@ func RunThreshMergeAndPermuval() {
 	plot_sets := ReadPlotSets(os.Stdin)
 	seed := 0
 	for _, set := range plot_sets {
-		err := ThreshMergeAndPerm(set, "nostat", seed)
+		err := ThreshMergeAndPerm(set, "pfst_allcombo", true, seed)
 		if err != nil {
 			panic(err)
 		}

@@ -1,9 +1,11 @@
 package fthresh
 
 import (
+	"runtime"
+	"flag"
 	"fmt"
 	"os"
-	"github.com/jgbaldwinbrown/permuvals/permuvals"
+	"github.com/jgbaldwinbrown/permuvals/pkg"
 )
 
 func ThreshMergeAll(set PlotSet) (err error) {
@@ -36,6 +38,8 @@ func PermAll(bedpaths []string, statistic string, seed int) (err error) {
 	flags.GenomeBedPath = "louse_genome_0.1.1.chrlens.bed"
 	flags.Iterations = 2000
 	flags.Rseed = seed
+	flags.Verbose = false
+	flags.MaxComps = 3
 	fmt.Println("start comp")
 	comp, err := permuvals.FullCompare(flags)
 	fmt.Println("end comp")
@@ -43,8 +47,21 @@ func PermAll(bedpaths []string, statistic string, seed int) (err error) {
 
 	outconn, err := os.Create(statistic + "_probs.txt")
 	if err != nil { return }
+	defer outconn.Close()
+
 	permuvals.FprintProbs(outconn, comp.Probs)
-	outconn.Close()
+
+	ovlconn, err := os.Create(statistic + "_overlaps.txt")
+	if err != nil { return }
+	defer ovlconn.Close()
+
+	permuvals.FprintOvlsBed(ovlconn, comp.Overlaps)
+
+	ovlstatsconn, err := os.Create(statistic + "_overlap_stats.txt")
+	if err != nil { return }
+	defer ovlstatsconn.Close()
+
+	permuvals.FprintOvlsStats(ovlstatsconn, permuvals.AllOvlsStats(comp.Overlaps)...)
 
 	return nil
 }
@@ -80,6 +97,32 @@ func PASets(all_bedpaths [][]string, statistics []string) (errors []error) {
 	return
 }
 
+type seededBedpaths struct {
+	seed int
+	bedpaths []string
+}
+
+func PASetsLimited(all_bedpaths [][]string, statistics []string, threads int) (errors []error) {
+	njobs := len(all_bedpaths)
+	jobq := make(chan seededBedpaths, njobs)
+	errs := make(chan error, njobs)
+	for i:=0; i<threads; i++ {
+		go func() {
+			for sbp := range jobq {
+				PAParallel(sbp.bedpaths, statistics[sbp.seed], sbp.seed, errs)
+			}
+		}()
+	}
+	for seed, bedpaths := range all_bedpaths {
+		jobq <- seededBedpaths{seed, bedpaths}
+	}
+	close(jobq)
+	for i := 0; i<njobs; i++ {
+		errors = append(errors, <-errs)
+	}
+	return
+}
+
 func GetAllBedpaths(sets PlotSets) (out [][]string) {
 	out = append(out, []string{}, []string{}, []string{})
 	for _, set := range sets {
@@ -90,8 +133,21 @@ func GetAllBedpaths(sets PlotSets) (out [][]string) {
 	return out
 }
 
+type RvrFlags struct {
+	Threads int
+}
+
+func GetRvrFlags() RvrFlags {
+	var f RvrFlags
+	flag.IntVar(&f.Threads, "t", 1, "Threads to use")
+	flag.Parse()
+	return f
+}
+
 func RunThreshMergePermRvr() {
 	plot_sets := ReadPlotSets(os.Stdin)
+	flags := GetRvrFlags()
+	runtime.GOMAXPROCS(flags.Threads)
 
 	errors := TMASets(plot_sets)
 	for _, err := range errors {
@@ -100,7 +156,7 @@ func RunThreshMergePermRvr() {
 
 	all_bedpaths := GetAllBedpaths(plot_sets)
 	statistics := []string{"pFst", "Fst", "Selec"}
-	errors = PASets(all_bedpaths, statistics)
+	errors = PASetsLimited(all_bedpaths, statistics, flags.Threads)
 	for _, err := range errors {
 		if err != nil { panic(err) }
 	}

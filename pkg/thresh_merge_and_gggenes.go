@@ -141,7 +141,7 @@ func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string
 
 	datapath = outpre + "_databed.bed"
 	fmt.Println("data: ", selecpath, fstpath, pfstpath, datapath)
-	cmd := exec.Command("./setup.sh", selecpath, fstpath, pfstpath, datapath)
+	cmd := exec.Command("sh", "setup.sh", selecpath, fstpath, pfstpath, datapath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -154,7 +154,7 @@ func MakeSnpBed(snpvcfpath string) (snpbedpath string, err error) {
 
 	snpbedpath = snpvcfpath + "_snpbed.bed"
 	fmt.Println(snpvcfpath, snpbedpath)
-	cmd := exec.Command("./setup_snp.sh", snpvcfpath, snpbedpath)
+	cmd := exec.Command("sh", "setup_snp.sh", snpvcfpath, snpbedpath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
