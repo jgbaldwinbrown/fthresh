@@ -36,12 +36,22 @@ func FormatMap() map[string]string {
 func HeightMap() map[string]string {
 	return  map[string]string {
 		"black": "Low",
-		"white": "High",
+		"white": "Low",
 		"feral": "Mid",
 		"figurita": "Low",
-		"runt": "High",
+		"runt": "Low",
 	}
 }
+
+// func HeightMap() map[string]string {
+// 	return  map[string]string {
+// 		"black": "Low",
+// 		"white": "High",
+// 		"feral": "Mid",
+// 		"figurita": "Low",
+// 		"runt": "High",
+// 	}
+// }
 
 func TraitMap() map[string]string {
 	return  map[string]string {
@@ -134,7 +144,7 @@ func PlfmtMap() map[string]string {
 
 func BedString(breed1, bit1, breed2, bit2, statistic string) string {
 	return fmt.Sprintf(
-		"_breed_%v_time_36_bit_%v_replicate_All_breed_%v_time_36_bit_%v_replicate_All_%v_%v_%v___multiplot_%v_tm_thresh_merge.bed",
+		"_breed_%v_time_36_bit_%v_replicate_All_breed_%v_time_36_bit_%v_replicate_All_%v_%v_%v___multiplot_%v_tm_perc_thresh_merge.bed",
 		FormatMap()[breed1],
 		FormatMap()[bit1],
 		FormatMap()[breed2],

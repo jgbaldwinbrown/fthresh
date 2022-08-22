@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"strings"
 	"sort"
-	//"github.com/pkg/profile"
 )
 
 type Flags struct {
@@ -17,10 +16,12 @@ type Flags struct {
 	ChrCol int
 	BpCol int
 	BpCol2 int
+	ChrBedPath string
 }
 
 type Entry struct {
 	Line []string
+	ChrStr string
 	Chr int
 	Bp int
 	Bp2 int
@@ -38,6 +39,7 @@ func (e Entries) Less(i, j int) bool {
 
 func GetEntry(line []string, chrcol, bpcol, bpcol2 int) (e Entry, err error) {
 	e.Line = line
+	e.ChrStr = line[0]
 
 	chrnum, err := strconv.ParseFloat(line[chrcol][3:], 64)
 	if err != nil { return }
@@ -114,8 +116,8 @@ func append_pls(data Entries, w io.Writer) {
 
 	for _, e := range data {
 		if e.Chr != prevchr {
-			cumsum += 1000
-			cumsum2 += 1000
+			// cumsum += 1000
+			// cumsum2 += 1000
 			prevbp = 0
 			prevbp2 = 0
 		}
@@ -130,10 +132,54 @@ func append_pls(data Entries, w io.Writer) {
 	}
 }
 
+func ReadChrBed(path string) (Entries, error) {
+	r, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	es, err, _ := GetData(r, 0, 1, 2, false)
+	return es, err
+}
+
+func GetOffsets(es Entries) map[string]int {
+	offs := make(map[string]int, len(es))
+	cumsum := 0
+	for _, e := range es {
+		offs[e.ChrStr] = cumsum
+		// cumsum += 1000 + e.Bp2 - e.Bp
+		cumsum += e.Bp2 - e.Bp
+	}
+	return offs
+}
+
+func appendPlsChrBed(data Entries, offsets map[string]int, w io.Writer) {
+	bw := bufio.NewWriter(w)
+	defer bw.Flush()
+
+	for _, e := range data {
+		cumsum := e.Bp + offsets[e.ChrStr]
+
+		cumsum2 := -1
+		if e.Bp2 != -1 {
+			cumsum2 = e.Bp2 + offsets[e.ChrStr]
+		}
+
+		FprintEntry(bw, e, cumsum, cumsum2)
+	}
+}
+
 func Plfmt(flags Flags, r io.Reader, w io.Writer) {
 	data, err, _ := GetData(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header)
 	if err != nil { panic(err) }
-	append_pls(data, w)
+	if flags.ChrBedPath == "" {
+		append_pls(data, w)
+	} else {
+		chrlens, err := ReadChrBed(flags.ChrBedPath)
+		if err != nil { panic(err) }
+		chroffsets := GetOffsets(chrlens)
+		appendPlsChrBed(data, chroffsets, w)
+	}
 }
 
 func GetFlags() (f Flags) {
@@ -141,15 +187,15 @@ func GetFlags() (f Flags) {
 	flag.IntVar(&f.ChrCol, "c", -1, "0-indexed column containing chromosome in format \"chr[0-9]*\"")
 	flag.IntVar(&f.BpCol, "b", -1, "Column containing basepair position.")
 	flag.IntVar(&f.BpCol2, "b2", -1, "Column containing end coordinates of spans (optional).")
+	flag.StringVar(&f.ChrBedPath, "C", "", "Path to .bed file containing all chromosomes' lengths.")
 	flag.Parse()
-	if f.ChrCol == -1 || f.BpCol == -1 {
+	if f.ChrCol == -1 || f.BpCol == -1 || f.ChrBedPath == "" {
 		panic(fmt.Errorf("Missing argument"))
 	}
 	return
 }
 
 func main() {
-	//defer profile.Start().Stop()
 	flags := GetFlags()
 	Plfmt(flags, os.Stdin, os.Stdout)
 }

@@ -12,14 +12,42 @@ import (
 	"io"
 	"github.com/jgbaldwinbrown/permuvals/pkg"
 	"github.com/jgbaldwinbrown/pmap/pkg"
+	"github.com/jgbaldwinbrown/accel/accel"
 )
 
+
+// func Quantile(data []float64, quantile float64) (threshpos int, thresh float64, overthresh []float64) {
+
+func PercThreshAndMerge(inpath string, col int, percentile float64, outpath string) error {
+	fmt.Println("paths:", inpath, outpath)
+	datatxt, err := ReadTable(inpath)
+	if err != nil { return err }
+	var data []float64
+	for _, line := range datatxt {
+		var float float64
+		float, err = strconv.ParseFloat(line[col-1], 64)
+		if err == nil {
+			data = append(data, float)
+		}
+	}
+	threshpos, thresh, overthresh := accel.Quantile(data, percentile)
+	fmt.Println("threshold stuff:")
+	fmt.Println(data[:10], percentile, threshpos, thresh, overthresh)
+	fmt.Println("paths again:", inpath, outpath)
+	err = ThreshAndMerge(inpath, col, thresh, outpath)
+	if err != nil {
+		return err
+	}
+	fmt.Println("paths again2:", inpath, outpath)
+	return nil
+}
+
 func PercThreshMergeAll(set PlotSet, percentile float64) (err error) {
-	err = ThreshAndMerge(PfstPrefix(set.Out)+".bed", 9, 1000.0, MergeOutPrefix(PfstPrefix(set.Out)) + "_perc")
+	err = PercThreshAndMerge(PfstPrefix(set.Out)+".bed", 9, percentile, MergeOutPrefix(PfstPrefix(set.Out)) + "_perc")
 	if err != nil { return }
-	err = ThreshAndMerge(FstPrefix(set.Out) + ".bed", 4, .10, MergeOutPrefix(FstPrefix(set.Out)) + "_perc")
+	err = PercThreshAndMerge(FstPrefix(set.Out) + ".bed", 4, percentile, MergeOutPrefix(FstPrefix(set.Out)) + "_perc")
 	if err != nil { return }
-	err = ThreshAndMerge(SelecPrefix(set.Out) + ".bed", 4, .04, MergeOutPrefix(SelecPrefix(set.Out)) + "_perc")
+	err = PercThreshAndMerge(SelecPrefix(set.Out) + ".bed", 4, percentile, MergeOutPrefix(SelecPrefix(set.Out)) + "_perc")
 	if err != nil { return }
 
 	return nil
@@ -163,7 +191,6 @@ func SubtractAlts(gset GoodAndAlts, statistic string) (outpath string, err error
 }
 
 func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, threads int) (outpaths []string, errs []error) {
-	fmt.Println(statistics)
 	var wg sync.WaitGroup
 	njobs := len(gsets) * len(statistics)
 	mod := len(statistics)

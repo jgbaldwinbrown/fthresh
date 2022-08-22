@@ -1,9 +1,14 @@
 #!/usr/bin/env Rscript
 
-source("plot_pretty_multiple_helpers.R")
+#source("plot_pretty_multiple_helpers.R")
+sourcedir = Sys.getenv("RLIBS")
+source(paste(sourcedir, "/plot_pretty_multiple_helpers.R", sep=""))
+
 
 main <- function() {
 	args = commandArgs(trailingOnly=TRUE)
+	print("args:")
+	print(args)
 	pfst_path = args[1]
 	fst_path = args[2]
 	selec_path = args[3]
@@ -35,8 +40,11 @@ main <- function() {
 	thresholds = joinlist[[2]]
 
 	pfst_sig_rect = bed2rect(pfst_sig_path)
+	pfst_sig_rect$NAME = "pfst"
 	# fst_sig_rect = bed2rect(fst_sig_path)
 	# selec_sig_rect = bed2rect(selec_sig_path)
+
+	significant_boxes = pfst_sig_rect
 
 	scales_y = list (
 		`pfst` = scale_y_continuous(limits = c(0, 350)),
@@ -44,6 +52,8 @@ main <- function() {
 		`selec` = scale_y_continuous(limits = c(-.01, .06))
 	)
 
+	print("plotting to:")
+	print(out_path)
 	plot_scaled_y_boxed(data, VAL, out_path, 20, 8, 300, thresholds, calc_chrom_labels(pfst), scales_y, significant_boxes)
 }
 

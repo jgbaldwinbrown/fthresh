@@ -37,6 +37,13 @@ read_bed_noval <- function(inpath) {
 	return(giant)
 }
 
+# for reading bed format files with only the minimum columns
+read_bed_postsub <- function(inpath) {
+	giant = as.data.frame(fread(inpath), header=FALSE)
+	colnames(giant) = c("chrom", "BP1", "BP", "dot", "len", "chrlen", "name", "CHR", "cumsum.tmp", "cumsum.tmp2")
+	return(giant)
+}
+
 read_fst <- function(inpath) {
 	giant = as.data.frame(fread(inpath), header=TRUE)
 	colnames(giant) = c("chrom", "BP", "FST", "CHR", "cumsum.tmp")
@@ -126,8 +133,10 @@ plot_scaled_y <- function(data, valcol, path, width, height, res_scale, threshol
 }
 
 plot_scaled_y_boxed <- function(data, valcol, path, width, height, res_scale, thresholds, medians, scales_y, rect) {
+	print(rect)
 	png(path, width = width * res_scale, height = height * res_scale, res = res_scale)
 		a = ggplot(data = data) +
+		geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3) +
 		geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
 		geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
 		scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
@@ -137,14 +146,56 @@ plot_scaled_y_boxed <- function(data, valcol, path, width, height, res_scale, th
 		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
 		theme_bw() + 
 		facet_grid_sc(NAME~., scales=list(y=scales_y)) +
-		geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#6666DD", color = "#6666DD", alpha = 0.5) +
+		theme(text = element_text(size=24))
+		print(a)
+	dev.off()
+}
+
+get_vert <- function(data, threshold) {
+	print("threshold")
+	print(threshold)
+	print("length(data$cumsum.tmp)")
+	print(length(data$cumsum.tmp))
+	print("length(data$cumsum.tmp[data$VAL>=threshold])")
+	print(length(data$cumsum.tmp[data$VAL>=threshold$THRESH[1]]))
+	return(data$cumsum.tmp[data$VAL>=threshold$THRESH[1]])
+}
+
+get_verts <- function(data, thresholds) {
+	names = as.character(levels(factor(data$NAME)))
+	vertslist = sapply(
+		names, 
+		function(x){
+			get_vert(data[data$NAME==x,], thresholds[thresholds$NAME==x,])
+		}
+	)
+	verts = Reduce(c, vertslist)
+	return(verts)
+}
+
+plot_scaled_y_vert <- function(data, valcol, path, width, height, res_scale, thresholds, medians, scales_y, rect) {
+	verts = get_verts(data, thresholds)
+	vertsd = data.frame(Verts=verts)
+	png(path, width = width * res_scale, height = height * res_scale, res = res_scale)
+		a = ggplot(data = data) +
+		geom_vline(data = vertsd, aes(xintercept = Verts), color = "#5555dd", alpha=0.3) +
+		geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
+		geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
+		scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
+		guides(colour=FALSE) +
+		xlab("Chromosome") +
+		ylab(expression(-log[10](italic(p)))) +
+		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
+		theme_bw() + 
+		facet_grid_sc(NAME~., scales=list(y=scales_y)) +
 		theme(text = element_text(size=24))
 		print(a)
 	dev.off()
 }
 
 bed2rect <- function(path) {
-	bed = read_bed_noval(path)
+	# bed = read_bed_noval(path)
+	bed = read_bed_postsub(path)
 	rect = data.frame(ymin = rep(-Inf, nrow(bed)),
 		ymax = rep(Inf, nrow(bed)),
 		xmin = bed$cumsum.tmp,

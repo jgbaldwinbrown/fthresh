@@ -6,9 +6,10 @@ import (
 	"bufio"
 	"github.com/jgbaldwinbrown/makem"
 	"strings"
+	"fmt"
 )
 
-func AddManhattanPlotSet(m *makem.MakeData, p PlotSet) {
+func AddManhattanPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	pfst_plfmt_noslop := p.Out + "_pfst_plfmt_noslop.bed"
 	pfst_plfmt := p.Out + "_pfst_plfmt.bed"
 	fst_plfmt := p.Out + "_fst_plfmt.bed"
@@ -19,7 +20,12 @@ func AddManhattanPlotSet(m *makem.MakeData, p PlotSet) {
 	r := makem.Recipe{}
 	r.AddTargets(pfst_plfmt_noslop)
 	r.AddDeps(p.Pfst)
-	r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
+	if chrlenspath != "" {
+		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 2 <$< > $@")
+	} else {
+		panic(fmt.Errorf("no chrlenspath"))
+		r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
+	}
 	m.Add(r)
 
 	r = makem.Recipe{}
@@ -31,13 +37,23 @@ func AddManhattanPlotSet(m *makem.MakeData, p PlotSet) {
 	r = makem.Recipe{}
 	r.AddTargets(fst_plfmt)
 	r.AddDeps(p.Fst)
-	r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
+	if chrlenspath != "" {
+		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 2 <$< > $@")
+	} else {
+		panic(fmt.Errorf("no chrlenspath"))
+		r.AddScripts("plfmt_flex -c 0 -b 2 <$< > $@")
+	}
 	m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(selec_plfmt)
 	r.AddDeps(p.Selec)
-	r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+	if chrlenspath != "" {
+		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+	} else {
+		panic(fmt.Errorf("no chrlenspath"))
+		r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+	}
 	m.Add(r)
 
 	r = makem.Recipe{}
@@ -52,21 +68,28 @@ func AddManhattanPlotSet(m *makem.MakeData, p PlotSet) {
 	m.Add(r)
 }
 
-func MakeManhatMakefile(r io.Reader) *makem.MakeData {
+func MakeManhatMakefile(r io.Reader, chrlenpath string) *makem.MakeData {
 	makefile := new(makem.MakeData)
 
 	s := bufio.NewScanner(r)
 	s.Buffer(make([]byte, 0), 1e12)
 
 	for s.Scan() {
-		AddManhattanPlotSet(makefile, ParsePlotSet(s.Text()))
+		AddManhattanPlotSet(makefile, ParsePlotSet(s.Text()), chrlenpath)
 	}
 
 	return makefile
 }
 
 func MakeAndRunManhatMakefile() {
-	makefile := MakeManhatMakefile(os.Stdin)
+	chrlenpath := ""
+	if len(os.Args) > 1 {
+		chrlenpath = os.Args[1]
+	}
+	if chrlenpath == "" {
+		panic(fmt.Errorf("no chrlenpath at input"))
+	}
+	makefile := MakeManhatMakefile(os.Stdin, chrlenpath)
 
 	makefile.Fprint(os.Stdout)
 

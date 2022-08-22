@@ -1,6 +1,8 @@
 #!/usr/bin/env Rscript
 
-source("plot_pretty_multiple_helpers.R")
+#source("plot_pretty_multiple_helpers.R")
+sourcedir = Sys.getenv("RLIBS")
+source(paste(sourcedir, "/plot_pretty_multiple_helpers.R", sep=""))
 
 main <- function() {
 	args = commandArgs(trailingOnly=TRUE)

@@ -71,13 +71,16 @@ func ThreshAndMerge(inpath string, col int, thresh float64, outpath string) (err
 		return
 	}
 
+	fmt.Println("col:", col)
+	fmt.Println("thresh:", thresh)
+	fmt.Println("outpath:", outpath)
 	cmd := exec.Command("bash", "merge_hits_scripted.sh", fmt.Sprint(col), fmt.Sprint(thresh), outpath)
 	cmd.Stdin = in
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	err = cmd.Run()
-	return
+	return err
 }
 
 func PfstPrefix(prefix string) string {
