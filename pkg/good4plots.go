@@ -2,13 +2,11 @@ package fthresh
 
 import (
 	"fmt"
-	"sync"
+	// "sync"
 	"runtime"
 	"strconv"
 	"flag"
 	"os"
-	// "golang.org/x/exp/slices"
-	// "github.com/jgbaldwinbrown/lscan/pkg"
 	"io"
 	"github.com/jgbaldwinbrown/permuvals/pkg"
 	"github.com/jgbaldwinbrown/pmap/pkg"
@@ -73,24 +71,6 @@ type GoodAndAlts struct {
 	Alts []Comp
 }
 
-// func ParseGoodAndAlts(line []string) GoodAndAlts {
-// 	var gaa GoodAndAlts
-// 	if len(line) > 0 {
-// 		gaa.Good = line[0]
-// 	}
-// 	gaa.Alts = slices.Clone(line[1:])
-// 	return gaa
-// }
-// 
-// func GetGoodAndAlts(r io.Reader) []GoodAndAlts {
-// 	s := lscan.NewScanner(r, lscan.ByByte('\t'))
-// 	var gaas []GoodAndAlts
-// 	for s.Scan() {
-// 		gaas = append(gaas, ParseGoodAndAlts(s.Line()))
-// 	}
-// 	return gaas
-// }
-
 func PrebuiltGoodAndAlts() []GoodAndAlts {
 	return []GoodAndAlts {
 		GoodAndAlts{
@@ -139,6 +119,7 @@ type Plot4Flags struct {
 	Threads int
 	Percentile float64
 	GoodsAndAltsPath string
+	SubFull bool
 }
 
 func GetPlot4Flags() Plot4Flags {
@@ -146,6 +127,7 @@ func GetPlot4Flags() Plot4Flags {
 
 	flag.IntVar(&f.Threads, "t", 1, "Threads to use")
 	percstring := flag.String("p", ".001", "Percentile threshold")
+	flag.BoolVar(&f.SubFull, "s", false, "Set to subtract entire region if it partially intersects with alt")
 	// flag.StringVar(&f.GoodsAndAltsPath, "g", "", "Path to tab-separated sets of good and alt comparisons")
 	flag.Parse()
 
@@ -160,7 +142,7 @@ func GetPlot4Flags() Plot4Flags {
 	return f
 }
 
-func SubtractAlts(gset GoodAndAlts, statistic string) (outpath string, err error) {
+func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool) (outpath string, err error) {
 	good, err := ReadPath(gset.Good.Path(statistic), func(r io.Reader) (permuvals.Bed, error) {
 		return permuvals.GetBed(r, gset.Good.Path(statistic))
 	})
@@ -175,10 +157,18 @@ func SubtractAlts(gset GoodAndAlts, statistic string) (outpath string, err error
 		if err != nil {
 			return "", err
 		}
-		good.SubtractBed(alt)
+		if subfull {
+			good = good.SubtractFullsBed(alt)
+		} else {
+			good.SubtractBed(alt)
+		}
 	}
 
-	outpath = gset.Good.OutputPrefix(statistic) + ".bed"
+	if subfull {
+		outpath = gset.Good.OutputPrefix(statistic) + "_subfulls.bed"
+	} else {
+		outpath = gset.Good.OutputPrefix(statistic) + ".bed"
+	}
 	ovlconn, err := os.Create(outpath)
 	if err != nil {
 		return "", err
@@ -190,29 +180,43 @@ func SubtractAlts(gset GoodAndAlts, statistic string) (outpath string, err error
 	return outpath, err
 }
 
-func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, threads int) (outpaths []string, errs []error) {
-	var wg sync.WaitGroup
+type subtractAllArgs struct {
+	gset GoodAndAlts
+	statistic string
+	subfull bool
+}
+
+type subtractAllOuts struct {
+	outpath string
+	err error
+}
+
+func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull bool) []subtractAllArgs {
 	njobs := len(gsets) * len(statistics)
 	mod := len(statistics)
-	jobs := make(chan int, njobs)
-	outpaths = make([]string, njobs)
-	errs = make([]error, njobs)
-
-	for i:=0; i<threads; i++ {
-		go func() {
-			for job := range jobs {
-				outpaths[job], errs[job] = SubtractAlts(gsets[job/mod], statistics[job%mod])
-				wg.Done()
-			}
-		}()
+	out := make([]subtractAllArgs, njobs)
+	for job, _ := range out {
+		out[job].gset = gsets[job/mod]
+		out[job].statistic = statistics[job%mod]
+		out[job].subfull = subfull
 	}
+	return out
+}
 
-	wg.Add(njobs)
-	for i:=0; i<njobs; i++ {
-		jobs <- i
+func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, subfull bool, threads int) (outpaths []string, errs []error) {
+	args := aggregateSubtractArgs(gsets, statistics, subfull)
+	f := func(a subtractAllArgs) subtractAllOuts {
+		var o subtractAllOuts
+		o.outpath, o.err = SubtractAlts(a.gset, a.statistic, a.subfull)
+		return o
 	}
-	close(jobs)
-	wg.Wait()
+	out := pmap.Map(f, args, threads)
+	outpaths = make([]string, len(out))
+	errs = make([]error, len(out))
+	for i, val := range out {
+		outpaths[i] = val.outpath
+		errs[i] = val.err
+	}
 	return outpaths, errs
 }
 
@@ -233,12 +237,9 @@ func RunGood4Plots() {
 		if err != nil { panic(err) }
 	}
 
-	// all_bedpaths := GetAllBedpaths(plot_sets)
-	// errors = PASetsLimited(all_bedpaths, statistics, flags.Threads)
-
 	goodsAndAlts := PrebuiltGoodAndAlts()
 	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, flags.SubFull, flags.Threads)
 	for _, err := range errors {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
@@ -249,19 +250,4 @@ func RunGood4Plots() {
 	for _, path := range outpaths {
 		fmt.Fprintln(pathsconn, path)
 	}
-
-	// goodsAndAlts, err := ReadPath(flags.GoodsAndAltsPath, GetGoodAndAlts)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// for _, stat := range statistics {
-	// 	ovlpath := stat + "_overlaps.txt"
-	// 	for _, gset := range goodsAndAlts {
-	// 		err = SubtractAlts(gset, ovlpath)
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 	}
-	// }
 }

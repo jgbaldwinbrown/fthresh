@@ -1,8 +1,13 @@
 package fthresh
 
 import (
+	"strings"
 	"fmt"
 )
+
+func SubFullPath(path string) string {
+	return strings.Replace(path, ".bed", "_subfulls.bed", 1)
+}
 
 func BreedPriority() map[string]int {
 	return map[string]int {

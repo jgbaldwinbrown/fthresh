@@ -18,6 +18,10 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	goods_plfmt := goodpre + "_plfmt.bed"
 	goods_plot := goodpre + "_plot.png"
 
+	goods_subfull := SubFullPath(goodpre)
+	goods_subfull_plfmt := goods_subfull + "_plfmt.bed"
+	goods_subfull_plot := goods_subfull + "_plot.bed"
+
 	out := p.Out + "_plot_pfst_fst_selec.png"
 	out_noselec := p.Out + "_plot_pfst_fst.png"
 
@@ -82,6 +86,22 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	r.AddTargets(goods_plot)
 	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_plfmt)
 	r.AddScripts("#plot_goods $^ " + goods_plot)
+	m.Add(r)
+
+	r = makem.Recipe{}
+	r.AddTargets(goods_subfull_plfmt)
+	r.AddDeps(goods_subfull)
+	if chrlenspath != "" {
+		r.AddScripts("plfmt_flex -c 0 -b 1 -b2 2 -C " + chrlenspath + " < $< > $@")
+	} else {
+		r.AddScripts("plfmt_flex -c 0 -b 1 -b2 2 < $< > $@")
+	}
+	m.Add(r)
+
+	r = makem.Recipe{}
+	r.AddTargets(goods_subfull_plot)
+	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_subfull_plfmt)
+	r.AddScripts("#plot_goods $^ " + goods_subfull_plot)
 	m.Add(r)
 
 	// pfst_path = args[1]
