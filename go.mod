@@ -3,7 +3,7 @@ module github.com/jgbaldwinbrown/fthresh
 go 1.18
 
 require (
-	github.com/jgbaldwinbrown/accel v0.1.4
+	github.com/jgbaldwinbrown/accel v0.1.5
 	github.com/jgbaldwinbrown/makem v0.0.0-20220125004522-d20fc593b6e7
 	github.com/jgbaldwinbrown/permuvals v0.5.0
 	github.com/jgbaldwinbrown/pmap v0.0.0-20220816212435-6b6424c83b2a

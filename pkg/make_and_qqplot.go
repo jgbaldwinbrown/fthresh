@@ -31,7 +31,7 @@ func AddManhattanPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	r = makem.Recipe{}
 	r.AddTargets(pfst_plfmt)
 	r.AddDeps(pfst_plfmt_noslop)
-	r.AddScripts(`awk -F "\t" -v OFS="\t" '{$$2-=24999; $$3+=25000; print $$0}' < $< > $@`)
+	r.AddScripts(`mawk -F "\t" -v OFS="\t" '{$$2-=24999; $$3+=25000; print $$0}' < $< > $@`)
 	m.Add(r)
 
 	r = makem.Recipe{}

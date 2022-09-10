@@ -10,15 +10,15 @@ import (
 func PrebuiltGoodAndAlts2() []GoodAndAlts {
 	return []GoodAndAlts {
 		GoodAndAlts{
-			Good: Comp{"black", "unbitted", "feral", "unbitted"},
+			Good: Comp{"black", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"black", "bitted", "feral", "bitted"},
+				Comp{"black", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 		GoodAndAlts{
-			Good: Comp{"white", "unbitted", "feral", "unbitted"},
+			Good: Comp{"white", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"white", "bitted", "feral", "bitted"},
+				Comp{"white", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 	}

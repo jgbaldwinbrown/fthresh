@@ -147,13 +147,34 @@ func PlfmtMap() map[string]string {
 	}
 }
 
-func BedString(breed1, bit1, breed2, bit2, statistic string) string {
+func FormatRep(rep int) string {
+	m := map[int]string {
+		1: "R1",
+		2: "R2",
+		3: "R3",
+		4: "R4",
+	}
+	s, ok := m[rep]
+	if !ok {
+		return "All"
+	}
+	return s
+}
+
+//		"_breed_%v_time_36_bit_%v_replicate_All_breed_%v_time_36_bit_%v_replicate_All_%v_%v_%v___multiplot_%v_tm_perc_thresh_merge.bed",
+func BedString(breed1, bit1 string, rep1, gen1 int, breed2, bit2 string, rep2, gen2 int, statistic string) string {
 	return fmt.Sprintf(
-		"_breed_%v_time_36_bit_%v_replicate_All_breed_%v_time_36_bit_%v_replicate_All_%v_%v_%v___multiplot_%v_tm_perc_thresh_merge.bed",
+		"_breed_%v_time_%v_bit_%v_replicate_%v_breed_%v_time_%v_bit_%v_replicate_%v_%v_%v_%v___multiplot_%v_tm_perc_thresh_merge.bed",
 		FormatMap()[breed1],
+		gen1,
 		FormatMap()[bit1],
+		FormatRep(rep1),
+
 		FormatMap()[breed2],
+		gen2,
 		FormatMap()[bit2],
+		FormatRep(rep2),
+
 		TraitMap()[breed1],
 		HeightMap()[breed1],
 		HeightMap()[breed2],
@@ -173,8 +194,12 @@ func OutprefixString(breed1, bit1, breed2, bit2 string) string {
 	return fmt.Sprintf("%v_%v_%v_%v_separated", breed1, bit1, breed2, bit2)
 }
 
-func CompOutput(breed1, bit1, statistic string) string {
-	return fmt.Sprintf("%v_%v_%v_subtractedalts", breed1, bit1, statistic)
+func CompOutput(breed1, bit1, statistic string, rep1 int) string {
+	if rep1 == 0 {
+		return fmt.Sprintf("%v_%v_%v_subtractedalts", breed1, bit1, statistic)
+	} else {
+		return fmt.Sprintf("%v_%v_R%v_%v_subtractedalts", breed1, bit1, rep1, statistic)
+	}
 }
 
 func PrintLine(breed1, bit1, breed2, bit2 string) {

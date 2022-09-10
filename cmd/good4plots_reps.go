@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	fthresh.PlotSetToTogetherSubFullScript()
+	fthresh.RunGood4PlotsReps()
 }

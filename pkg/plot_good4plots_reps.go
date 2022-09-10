@@ -7,23 +7,23 @@ import (
 	"github.com/jgbaldwinbrown/makem"
 )
 
-func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
+func AddGoodPlotSetReps(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	pfst_plfmt_noslop := p.Out + "_pfst_plfmt_noslop.bed"
 	pfst_plfmt := p.Out + "_pfst_plfmt.bed"
 	fst_plfmt := p.Out + "_fst_plfmt.bed"
-	selec_plfmt := p.Out + "_selec_plfmt.bed"
+	// selec_plfmt := p.Out + "_selec_plfmt.bed"
 
 	goodpre := p.GoodPfstSpans
 	goods := goodpre
 	goods_plfmt := goodpre + "_plfmt.bed"
-	goods_plot := goodpre + "_plot.png"
+	// goods_plot := goodpre + "_plot.png"
 
 	goods_subfull := SubFullPath(goodpre)
 	goods_subfull_plfmt := goods_subfull + "_plfmt.bed"
-	goods_subfull_plot := goods_subfull + "_plot.bed"
+	// goods_subfull_plot := goods_subfull + "_plot.png"
 
-	out := p.Out + "_plot_pfst_fst_selec.png"
-	out_noselec := p.Out + "_plot_pfst_fst.png"
+	// out := p.Out + "_plot_pfst_fst_selec.png"
+	// out_noselec := p.Out + "_plot_pfst_fst.png"
 
 	r := makem.Recipe{}
 	r.AddTargets(pfst_plfmt_noslop)
@@ -51,26 +51,26 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	}
 	m.Add(r)
 
-	r = makem.Recipe{}
-	r.AddTargets(selec_plfmt)
-	r.AddDeps(p.Selec)
-	if chrlenspath != "" {
-		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
-	} else {
-		r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
-	}
-	m.Add(r)
+	// r = makem.Recipe{}
+	// r.AddTargets(selec_plfmt)
+	// r.AddDeps(p.Selec)
+	// if chrlenspath != "" {
+	// 	r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+	// } else {
+	// 	r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+	// }
+	// m.Add(r)
 
-	r = makem.Recipe{}
-	r.AddTargets(out)
-	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt)
-	r.AddScripts("#plot_pfst_fst_selec $^ " + out)
+	// r = makem.Recipe{}
+	// r.AddTargets(out)
+	// r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt)
+	// r.AddScripts("#plot_pfst_fst_selec $^ " + out)
 
-	r = makem.Recipe{}
-	r.AddTargets(out_noselec)
-	r.AddDeps(pfst_plfmt, fst_plfmt)
-	r.AddScripts("#plot_pfst_fst $^ " + out_noselec)
-	m.Add(r)
+	// r = makem.Recipe{}
+	// r.AddTargets(out_noselec)
+	// r.AddDeps(pfst_plfmt, fst_plfmt)
+	// r.AddScripts("#plot_pfst_fst $^ " + out_noselec)
+	// m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(goods_plfmt)
@@ -82,11 +82,11 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	}
 	m.Add(r)
 
-	r = makem.Recipe{}
-	r.AddTargets(goods_plot)
-	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_plfmt)
-	r.AddScripts("#plot_goods $^ " + goods_plot)
-	m.Add(r)
+	// r = makem.Recipe{}
+	// r.AddTargets(goods_plot)
+	// r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_plfmt)
+	// r.AddScripts("#plot_goods $^ " + goods_plot)
+	// m.Add(r)
 
 	r = makem.Recipe{}
 	r.AddTargets(goods_subfull_plfmt)
@@ -98,11 +98,11 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	}
 	m.Add(r)
 
-	r = makem.Recipe{}
-	r.AddTargets(goods_subfull_plot)
-	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_subfull_plfmt)
-	r.AddScripts("#plot_goods $^ " + goods_subfull_plot)
-	m.Add(r)
+	// r = makem.Recipe{}
+	// r.AddTargets(goods_subfull_plot)
+	// r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_subfull_plfmt)
+	// r.AddScripts("#plot_goods $^ " + goods_subfull_plot)
+	// m.Add(r)
 
 	// pfst_path = args[1]
 	// fst_path = args[2]
@@ -114,7 +114,7 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	// selec_sig_path = args[7]
 }
 
-func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
+func MakeGoodsMakefileReps(r io.Reader, chrlenspath string) *makem.MakeData {
 	makefile := new(makem.MakeData)
 
 	s := bufio.NewScanner(r)
@@ -127,7 +127,7 @@ func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
 	return makefile
 }
 
-func RunMakefile(mf *makem.MakeData, cores int) {
+func RunMakefileReps(mf *makem.MakeData, cores int) {
 	mfp, err  := os.Create("manhat_makefile")
 	if err != nil {
 		panic(err)
@@ -141,7 +141,7 @@ func RunMakefile(mf *makem.MakeData, cores int) {
 	}
 }
 
-func MakeAndRunGoodsMakefile() {
+func MakeAndRunGoodsMakefileReps() {
 	mf := MakeGoodsMakefile(os.Stdin, os.Args[1])
 	mf.Fprint(os.Stdout)
 	RunMakefile(mf, 8)

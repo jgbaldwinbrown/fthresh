@@ -42,7 +42,7 @@ func TestPercThreshAndMerge(t *testing.T) {
 	defer os.Remove(outpath + "_thresholded.bed")
 	defer os.Remove(outpath + "_thresh_merge.bed")
 
-	err = PercThreshAndMerge(inpath, 3, 0.21, outpath)
+	err = PercThreshAndMerge(inpath, 3, 0.21, 0, outpath)
 	if err != nil {
 		panic(err)
 	}

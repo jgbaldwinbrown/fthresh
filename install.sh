@@ -17,13 +17,18 @@ cp cmd/combine_pfst_fst_selec ~/mybin/
 cp cmd/thresh_and_permuval_parallel ~/mybin/
 cp cmd/qqplot_all ~/mybin/
 cp cmd/good4plots ~/mybin/
+cp cmd/good4plots_reps ~/mybin/
 cp cmd/good2plots ~/mybin/
 cp cmd/plot_good4plots ~/mybin/
+cp cmd/plot_good4plots_reps ~/mybin/
 cp cmd/plot_good4plots_together ~/mybin/
+cp cmd/plot_good4plots_reps_together ~/mybin/
 cp cmd/plot_good4plots_vert ~/mybin/
+cp cmd/plot_good8plots_vert ~/mybin/
 cp cmd/plot_good2plots ~/mybin/
 cp cmd/plot_good2plots_together ~/mybin/
 cp cmd/thresh_merge_and_gggenes ~/mybin/
+cp cmd/gggenes_noselec ~/mybin/
 
 (cd scripts && (
 	ls -1d *.go | while read i ; do
@@ -43,8 +48,17 @@ cp scripts/plot_goods.R ~/mybin/plot_goods
 chmod +x ~/mybin/plot_goods
 cp scripts/plot_goods_pfst_together.R ~/mybin/plot_goods_pfst_together
 chmod +x ~/mybin/plot_goods_pfst_together
+cp scripts/plot_goods_pfst_reps_together.R ~/mybin/plot_goods_pfst_reps_together
+chmod +x ~/mybin/plot_goods_pfst_reps_together
 cp scripts/plot_goods_pfst_together2.R ~/mybin/plot_goods_pfst_together2
 chmod +x ~/mybin/plot_goods_pfst_together2
 cp scripts/plot_goods_pfst_vert.R ~/mybin/plot_goods_pfst_vert
 chmod +x ~/mybin/plot_goods_pfst_vert
+cp scripts/plot_goods_pfst_vert_size.R ~/mybin/plot_goods_pfst_vert_size
+chmod +x ~/mybin/plot_goods_pfst_vert_size
+cp scripts/plot_region.R ~/mybin/plot_region
+chmod +x ~/mybin/plot_region
+cp scripts/genelists.sh ~/mybin/genelists
+chmod +x ~/mybin/genelists
+
 cp scripts/plot_pretty_multiple_helpers.R ~/rlibs

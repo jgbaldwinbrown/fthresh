@@ -1,6 +1,7 @@
 package fthresh
 
 import (
+	"os/exec"
 	"fmt"
 	// "sync"
 	"runtime"
@@ -13,10 +14,46 @@ import (
 	"github.com/jgbaldwinbrown/accel/accel"
 )
 
+func ExpandMergeString() string {
+	return `#!/bin/bash
+set -e
+
+mawk -F "\t" -v OFS="\t" '{
+	$2=$2 - '${1}';
+	$3=$3 + '${1}';
+	if ($2 < 0) { $2 = 0 };
+	if ($3 < 0) { $3 = 0 };
+	print $0;
+}' \
+> ${2}_thresholded.bed
+
+bedtools merge -i ${2}_thresholded.bed > ${2}_thresh_merge.bed`
+}
 
 // func Quantile(data []float64, quantile float64) (threshpos int, thresh float64, overthresh []float64) {
 
-func PercThreshAndMerge(inpath string, col int, percentile float64, outpath string) error {
+func ExpandAndMerge(inpath string, slop int, outpath string) (err error) {
+	in, err := os.Open(inpath)
+	if err != nil { return }
+	defer in.Close()
+
+	err = WriteFile("expand_merge_scripted.sh", ExpandMergeString())
+	if err != nil {
+		return
+	}
+
+	fmt.Println("slop:", slop)
+	fmt.Println("outpath:", outpath)
+	cmd := exec.Command("bash", "expand_merge_scripted.sh", fmt.Sprint(slop), outpath)
+	cmd.Stdin = in
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	return err
+}
+
+func PercThreshAndMerge(inpath string, col int, percentile float64, slop int, outpath string) error {
 	fmt.Println("paths:", inpath, outpath)
 	datatxt, err := ReadTable(inpath)
 	if err != nil { return err }
@@ -28,11 +65,17 @@ func PercThreshAndMerge(inpath string, col int, percentile float64, outpath stri
 			data = append(data, float)
 		}
 	}
-	threshpos, thresh, overthresh := accel.Quantile(data, percentile)
-	fmt.Println("threshold stuff:")
-	fmt.Println(data[:10], percentile, threshpos, thresh, overthresh)
-	fmt.Println("paths again:", inpath, outpath)
-	err = ThreshAndMerge(inpath, col, thresh, outpath)
+	_, thresh, _ := accel.Quantile(data, percentile)
+	// threshpos, thresh, overthresh := accel.Quantile(data, percentile)
+	// fmt.Println("threshold stuff:")
+	// fmt.Println(data[:10], percentile, threshpos, thresh, overthresh)
+	// fmt.Println("paths again:", inpath, outpath)
+	err = ThreshAndMerge(inpath, col, thresh, outpath + "_unexpanded")
+	if err != nil {
+		return err
+	}
+
+	err = ExpandAndMerge(outpath + "_unexpanded_thresh_merge.bed", slop, outpath);
 	if err != nil {
 		return err
 	}
@@ -41,12 +84,12 @@ func PercThreshAndMerge(inpath string, col int, percentile float64, outpath stri
 }
 
 func PercThreshMergeAll(set PlotSet, percentile float64) (err error) {
-	err = PercThreshAndMerge(PfstPrefix(set.Out)+".bed", 9, percentile, MergeOutPrefix(PfstPrefix(set.Out)) + "_perc")
+	err = PercThreshAndMerge(PfstPrefix(set.Out)+".bed", 9, percentile, 250000, MergeOutPrefix(PfstPrefix(set.Out)) + "_perc")
 	if err != nil { return }
-	err = PercThreshAndMerge(FstPrefix(set.Out) + ".bed", 4, percentile, MergeOutPrefix(FstPrefix(set.Out)) + "_perc")
+	err = PercThreshAndMerge(FstPrefix(set.Out) + ".bed", 4, percentile, 250000, MergeOutPrefix(FstPrefix(set.Out)) + "_perc")
 	if err != nil { return }
-	err = PercThreshAndMerge(SelecPrefix(set.Out) + ".bed", 4, percentile, MergeOutPrefix(SelecPrefix(set.Out)) + "_perc")
-	if err != nil { return }
+	// err = PercThreshAndMerge(SelecPrefix(set.Out) + ".bed", 4, percentile, 250000, MergeOutPrefix(SelecPrefix(set.Out)) + "_perc")
+	// if err != nil { return }
 
 	return nil
 }
@@ -54,16 +97,20 @@ func PercThreshMergeAll(set PlotSet, percentile float64) (err error) {
 type Comp struct {
 	Breed1 string
 	Bit1 string
+	Rep1 int
+	Gen1 int
 	Breed2 string
 	Bit2 string
+	Rep2 int
+	Gen2 int
 }
 
 func (c Comp) Path(statistic string) string {
-	return BedString(c.Breed1, c.Bit1, c.Breed2, c.Bit2, statistic)
+	return BedString(c.Breed1, c.Bit1, c.Rep1, c.Gen1, c.Breed2, c.Bit2, c.Rep2, c.Gen2, statistic)
 }
 
 func (c Comp) OutputPrefix(statistic string) string {
-	return CompOutput(c.Breed1, c.Bit1, statistic)
+	return CompOutput(c.Breed1, c.Bit1, statistic, c.Rep1)
 }
 
 type GoodAndAlts struct {
@@ -74,31 +121,27 @@ type GoodAndAlts struct {
 func PrebuiltGoodAndAlts() []GoodAndAlts {
 	return []GoodAndAlts {
 		GoodAndAlts{
-			Good: Comp{"black", "unbitted", "feral", "unbitted"},
+			Good: Comp{"black", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"black", "bitted", "feral", "bitted"},
-				Comp{"black", "bitted", "white", "bitted"},
+				Comp{"black", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 		GoodAndAlts{
-			Good: Comp{"white", "unbitted", "feral", "unbitted"},
+			Good: Comp{"white", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"white", "bitted", "feral", "bitted"},
-				Comp{"white", "bitted", "black", "bitted"},
+				Comp{"white", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 		GoodAndAlts{
-			Good: Comp{"figurita", "unbitted", "feral", "unbitted"},
+			Good: Comp{"figurita", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"figurita", "bitted", "feral", "bitted"},
-				Comp{"figurita", "bitted", "runt", "bitted"},
+				Comp{"figurita", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 		GoodAndAlts{
-			Good: Comp{"runt", "unbitted", "feral", "unbitted"},
+			Good: Comp{"runt", "unbitted", 0, 36, "feral", "unbitted", 0, 36},
 			Alts: []Comp {
-				Comp{"runt", "bitted", "feral", "bitted"},
-				Comp{"runt", "bitted", "figurita", "bitted"},
+				Comp{"runt", "bitted", 0, 36, "feral", "bitted", 0, 36},
 			},
 		},
 	}
@@ -143,18 +186,22 @@ func GetPlot4Flags() Plot4Flags {
 }
 
 func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool) (outpath string, err error) {
+	fmt.Fprintln(os.Stderr, "subtracting:", gset, statistic, subfull)
 	good, err := ReadPath(gset.Good.Path(statistic), func(r io.Reader) (permuvals.Bed, error) {
 		return permuvals.GetBed(r, gset.Good.Path(statistic))
 	})
 	if err != nil {
+		fmt.Fprintln(os.Stderr,"Error!")
 		return "", err
 	}
 	for _ , altcomp := range gset.Alts {
+		fmt.Println("path to subtract:", altcomp.Path(statistic))
 		path := altcomp.Path(statistic)
 		alt, err := ReadPath(path, func(r io.Reader) (permuvals.Bed, error) {
 			return permuvals.GetBed(r, path)
 		})
 		if err != nil {
+			fmt.Fprintln(os.Stderr,"Error2!")
 			return "", err
 		}
 		if subfull {
@@ -171,6 +218,7 @@ func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool) (outpath str
 	}
 	ovlconn, err := os.Create(outpath)
 	if err != nil {
+		fmt.Fprintln(os.Stderr,"Error3!")
 		return "", err
 	}
 	defer ovlconn.Close()
@@ -239,7 +287,7 @@ func RunGood4Plots() {
 
 	goodsAndAlts := PrebuiltGoodAndAlts()
 	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, flags.SubFull, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.Threads)
 	for _, err := range errors {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
@@ -249,5 +297,17 @@ func RunGood4Plots() {
 	defer pathsconn.Close()
 	for _, path := range outpaths {
 		fmt.Fprintln(pathsconn, path)
+	}
+
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.Threads)
+	for _, err := range errors_f {
+		if err != nil { fmt.Fprintln(os.Stderr, err) }
+	}
+
+	pathsconn_f, err_f := os.Create("goodbedpaths2_f.txt")
+	if err_f != nil { panic(err_f) }
+	defer pathsconn_f.Close()
+	for _, path := range outpaths_f {
+		fmt.Fprintln(pathsconn_f, path)
 	}
 }

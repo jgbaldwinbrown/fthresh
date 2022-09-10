@@ -19,15 +19,15 @@ set -e
 # $4: output combined data bed
 
 cat "$1" | \
-awkf '{print $1, $2, $3, $4, "selec"}' \
+mawk -F "\t" -v OFS="\t" '{print $1, $2, $3, $4, "selec"}' \
 > "$4"
 
 cat "$2" | \
-awkf '{print $1, $2, $3, $4, "fst"}' \
+mawk -F "\t" -v OFS="\t" '{print $1, $2, $3, $4, "fst"}' \
 >> "$4"
 
 cat "$3" | \
-awkf '{print $1, $2, $3, $9, "pfst"}' \
+mawk -F "\t" -v OFS="\t" '{print $1, $2, $3, $9, "pfst"}' \
 >> "$4"
 `
 
@@ -38,7 +38,7 @@ set -e
 # $2: output edited snps bed
 
 gunzip -c "$1" | \
-awkf '$1!~/^#/ {print $1, $2-1, $2, "snp"}' \
+mawk -F "\t" -v OFS="\t" '$1!~/^#/ {print $1, $2-1, $2, "snp"}' \
 > "$2"
 `
 
@@ -68,8 +68,7 @@ func Gggenes(a GggenesArgs) error {
 
 func GggenesInternal(annotpath, datapath, snppath, outpath, chr, start, end, height, width string) error {
 	cmd := exec.Command(
-		"Rscript",
-		"plot_region.R",
+		"plot_region",
 		annotpath,
 		datapath,
 		snppath,
@@ -120,8 +119,8 @@ func ReadTable(path string) ([][]string, error) {
 // # $2: input fsts
 // # $3: input pfsts
 // # $4: output combined data bed
-func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string, err error) {
-	err = WriteFile("setup.sh", setupShTxt)
+func makeDataComboInternal(pfstpath, fstpath, selecpath, outpre, scriptContent string) (datapath string, err error) {
+	err = WriteFile("setup.sh", scriptContent)
 	if err != nil { return }
 
 	datapath = outpre + "_databed.bed"
@@ -131,6 +130,10 @@ func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	return datapath, err
+}
+
+func MakeDataCombo(pfstpath, fstpath, selecpath, outpre string) (datapath string, err error) {
+	return makeDataComboInternal(pfstpath, fstpath, selecpath, outpre, setupShTxt)
 }
 
 func MakeSnpBed(snpvcfpath string) (snpbedpath string, err error) {
@@ -193,6 +196,18 @@ func GggenesAllBedpaths(paths_sets [][]string, annotpath, snpvcfpath string) err
 	return nil
 }
 
+
+func GetAllBedpathsGggenesPerc(sets PlotSets) (out [][]string) {
+	out = append(out, []string{}, []string{}, []string{}, []string{}, []string{})
+	for _, set := range sets {
+		out[0] = append(out[0], PfstPercMergeOut(set.Out))
+		out[1] = append(out[1], FstPercMergeOut(set.Out))
+		out[2] = append(out[2], SelecPercMergeOut(set.Out))
+		out[3] = append(out[3], set.Out + "_perc_gggenes")
+		out[4] = append(out[4], PfstOut(set.Out))
+	}
+	return out
+}
 
 func GetAllBedpathsGggenes(sets PlotSets) (out [][]string) {
 	out = append(out, []string{}, []string{}, []string{}, []string{}, []string{})

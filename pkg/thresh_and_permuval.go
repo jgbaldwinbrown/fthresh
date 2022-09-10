@@ -45,7 +45,7 @@ func MergeHitsString() string {
 	return `#!/bin/bash
 set -e
 
-awk -F "\t" -v OFS="\t" '$'${1}' >= '${2}'{$3=sprintf("%d", $3); print $0}' \
+mawk -F "\t" -v OFS="\t" '$'${1}' >= '${2}'{$3=sprintf("%d", $3); print $0}' \
 > ${3}_thresholded.bed
 
 bedtools merge -i ${3}_thresholded.bed > ${3}_thresh_merge.bed`
@@ -116,6 +116,18 @@ func SelecMergeOut(prefix string) string {
 	return MergeOutPrefix(SelecPrefix(prefix)) + "_thresh_merge.bed"
 }
 
+func FstPercMergeOut(prefix string) string {
+	return MergeOutPrefix(FstPrefix(prefix)) + "_perc_thresh_merge.bed"
+}
+
+func PfstPercMergeOut(prefix string) string {
+	return MergeOutPrefix(PfstPrefix(prefix)) + "_perc_thresh_merge.bed"
+}
+
+func SelecPercMergeOut(prefix string) string {
+	return MergeOutPrefix(SelecPrefix(prefix)) + "_perc_thresh_merge.bed"
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 func PfstOut(prefix string) string {
 	return PfstPrefix(prefix) + ".bed"
@@ -123,6 +135,10 @@ func PfstOut(prefix string) string {
 
 func GggenesOut(prefix, chr, start, end string) string {
 	return prefix + "_" + chr + "_" + start + "_" + end + ".pdf"
+}
+
+func GggenesOutNofstNoselec(prefix, chr, start, end string) string {
+	return prefix + "_" + chr + "_" + start + "_" + end + "_nofst_noselec.pdf"
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
