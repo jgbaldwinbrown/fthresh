@@ -197,7 +197,7 @@ plot_scaled_y_boxed_text <- function(data, valcol, path, width, height, res_scal
 		ylab(expression(-log[10](italic(p)))) +
 		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
 		theme_bw() + 
-		facet_grid_sc(NAME~., scales=list(y=scales_y)) +
+		facet_grid_sc(factor(NAME, levels=c("black", "white", "figurita", "runt"))~., scales=list(y=scales_y)) +
 		theme(text = element_text(size=24))
 		print(a)
 	dev.off()
