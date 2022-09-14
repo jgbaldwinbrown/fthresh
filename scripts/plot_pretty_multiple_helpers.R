@@ -8,6 +8,23 @@ library(facetscales)
 
 read_combined_pvals_precomputed <- function(inpath) {
 	giant = as.data.frame(fread(inpath), header=TRUE)
+	if (ncol(giant) == 0) {
+		giant = data.frame(
+			character(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			numeric(),
+			stringsAsFactors = FALSE
+		)
+	}
 	colnames(giant) = c("chrom", "BP1", "BP", "PFST", "CHISQ", "WINDOW_P", "THRESH", "WINDOW_FDR_P", "WINDOW_FDR_NLOGP", "BONF_THRESH", "CHR", "cumsum.tmp")
 	giant$VAL = -log10(giant$WINDOW_FDR_P)
 	return(giant)
@@ -40,6 +57,21 @@ read_bed_noval <- function(inpath) {
 # for reading bed format files with only the minimum columns
 read_bed_postsub <- function(inpath) {
 	giant = as.data.frame(fread(inpath), header=FALSE)
+	if (ncol(giant) == 0) {
+		giant = data.frame(
+			character(),
+			numeric(),
+			numeric(),
+			character(),
+			numeric(),
+			numeric(),
+			character(),
+			numeric(),
+			numeric(),
+			numeric(),
+			stringsAsFactors = FALSE
+		)
+	}
 	colnames(giant) = c("chrom", "BP1", "BP", "dot", "len", "chrlen", "name", "CHR", "cumsum.tmp", "cumsum.tmp2")
 	return(giant)
 }

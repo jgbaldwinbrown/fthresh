@@ -61,13 +61,21 @@ main <- function() {
 	thresholds = joinlist[[2]]
 
 	black_pfst_sig_rect = bed2rect(black_pfst_sig_path)
-	black_pfst_sig_rect$NAME = "R1"
+	if (nrow(black_pfst_sig_rect) > 0) {
+		black_pfst_sig_rect$NAME = "R1"
+	}
 	white_pfst_sig_rect = bed2rect(white_pfst_sig_path)
-	white_pfst_sig_rect$NAME = "R2"
+	if (nrow(white_pfst_sig_rect) > 0) {
+		white_pfst_sig_rect$NAME = "R2"
+	}
 	runt_pfst_sig_rect = bed2rect(runt_pfst_sig_path)
-	runt_pfst_sig_rect$NAME = "R3"
+	if (nrow(runt_pfst_sig_rect) > 0) {
+		runt_pfst_sig_rect$NAME = "R3"
+	}
 	figurita_pfst_sig_rect = bed2rect(figurita_pfst_sig_path)
-	figurita_pfst_sig_rect$NAME = "R4"
+	if (nrow(figurita_pfst_sig_rect) > 0) {
+		figurita_pfst_sig_rect$NAME = "R4"
+	}
 
 	significant_boxes = as.data.frame(rbind(
 		black_pfst_sig_rect,
@@ -77,10 +85,10 @@ main <- function() {
 	))
 
 	scales_y = list (
-		`black` = scale_y_continuous(limits = c(0, 350)),
-		`white` = scale_y_continuous(limits = c(0, 350)),
-		`runt` = scale_y_continuous(limits = c(0, 350)),
-		`figurita` = scale_y_continuous(limits = c(0, 350))
+		`R1` = scale_y_continuous(limits = c(0, 350)),
+		`R2` = scale_y_continuous(limits = c(0, 350)),
+		`R3` = scale_y_continuous(limits = c(0, 350)),
+		`R4` = scale_y_continuous(limits = c(0, 350))
 	)
 
 	plot_scaled_y_boxed(data, VAL, out_path, 20, 8, 300, thresholds, calc_chrom_labels(black_pfst), scales_y, significant_boxes)
