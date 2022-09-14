@@ -183,6 +183,26 @@ plot_scaled_y_boxed <- function(data, valcol, path, width, height, res_scale, th
 	dev.off()
 }
 
+plot_scaled_y_boxed_text <- function(data, valcol, path, width, height, res_scale, thresholds, medians, scales_y, rect, text) {
+	print(rect)
+	png(path, width = width * res_scale, height = height * res_scale, res = res_scale)
+		a = ggplot(data = data) +
+		geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3) +
+		geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
+		geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
+		geom_text(data = text, aes(x = x, y = y, label = textlabel)) +
+		scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
+		guides(colour=FALSE) +
+		xlab("Chromosome") +
+		ylab(expression(-log[10](italic(p)))) +
+		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
+		theme_bw() + 
+		facet_grid_sc(NAME~., scales=list(y=scales_y)) +
+		theme(text = element_text(size=24))
+		print(a)
+	dev.off()
+}
+
 get_vert <- function(data, threshold) {
 	print("threshold")
 	print(threshold)

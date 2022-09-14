@@ -83,7 +83,14 @@ main <- function() {
 		`figurita` = scale_y_continuous(limits = c(0, 350))
 	)
 
-	plot_scaled_y_boxed(data, VAL, out_path, 20, 8, 300, thresholds, calc_chrom_labels(black_pfst), scales_y, significant_boxes)
+	text = data.frame(
+		x = c(0,0,0,0),
+		y = c(350,350,350,350),
+		NAME = c("black", "white", "runt", "figurita"),
+		textlabel = c("Color (dark)", "Color (light)", "Size (large)", "Size (small)")
+	)
+
+	plot_scaled_y_boxed_text(data, VAL, out_path, 20, 8, 300, thresholds, calc_chrom_labels(black_pfst), scales_y, significant_boxes, text)
 }
 
 main()
