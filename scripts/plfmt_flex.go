@@ -11,12 +11,19 @@ import (
 	"sort"
 )
 
+const (
+	NAMED int = iota
+	INORDER
+	NUMERIC
+)
+
 type Flags struct {
 	Header bool
 	ChrCol int
 	BpCol int
 	BpCol2 int
 	ChrBedPath string
+	Named bool
 }
 
 type Entry struct {
@@ -37,13 +44,21 @@ func (e Entries) Less(i, j int) bool {
 	return e[i].Chr < e[j].Chr
 }
 
-func GetEntry(line []string, chrcol, bpcol, bpcol2 int) (e Entry, err error) {
+func GetEntry(line []string, chrcol, bpcol, bpcol2 int, chrflag int, chrname map[string]int) (e Entry, err error) {
 	e.Line = line
 	e.ChrStr = line[0]
 
-	chrnum, err := strconv.ParseFloat(line[chrcol][3:], 64)
-	if err != nil { return }
-	e.Chr = int(chrnum)
+	if chrflag == NUMERIC {
+		var chrnum float64
+		chrnum, err = strconv.ParseFloat(line[chrcol][3:], 64)
+		if err != nil { return }
+		e.Chr = int(chrnum)
+	}
+	if chrflag == NAMED {
+		var ok bool
+		e.Chr, ok = chrname[line[chrcol]]
+		if !ok { return }
+	}
 
 	bp, err := strconv.ParseFloat(line[bpcol], 64)
 	e.Bp = int(bp)
@@ -56,7 +71,7 @@ func GetEntry(line []string, chrcol, bpcol, bpcol2 int) (e Entry, err error) {
 	return
 }
 
-func GetData(r io.Reader, chrcol int, bpcol int, bpcol2 int, header bool) (es Entries, err error, header_string string) {
+func GetData(r io.Reader, chrcol int, bpcol int, bpcol2 int, header bool, chrflag int, chrlens Entries) (es Entries, err error, header_string string) {
 	s := bufio.NewScanner(r)
 
 	if header {
@@ -64,11 +79,21 @@ func GetData(r io.Reader, chrcol int, bpcol int, bpcol2 int, header bool) (es En
 		header_string = s.Text()
 	}
 
-	for s.Scan() {
+	chrnames := make(map[string]int)
+	if chrflag == NAMED {
+		for _, e := range chrlens {
+			chrnames[e.ChrStr] = e.Chr
+		}
+	}
+
+	for i:=1; s.Scan(); i++ {
 		line := strings.Split(s.Text(), "\t")
 		var e Entry
-		e, err = GetEntry(line, chrcol, bpcol, bpcol2)
+		e, err = GetEntry(line, chrcol, bpcol, bpcol2, chrflag, chrnames)
 		if err != nil { return }
+		if chrflag == INORDER {
+			e.Chr = i
+		}
 		es = append(es, e)
 	}
 	return
@@ -132,20 +157,27 @@ func append_pls(data Entries, w io.Writer) {
 	}
 }
 
-func ReadChrBed(path string) (Entries, error) {
+func ReadChrBed(path string, chrflag int) (Entries, error) {
 	r, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
-	es, err, _ := GetData(r, 0, 1, 2, false)
+	es, err, _ := GetData(r, 0, 1, 2, false, chrflag, nil)
 	return es, err
 }
 
+
 func GetOffsets(es Entries) map[string]int {
-	offs := make(map[string]int, len(es))
-	cumsum := 0
+	var sorted Entries
 	for _, e := range es {
+		e.Line = append([]string{}, e.Line...)
+		sorted = append(sorted, e)
+	}
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Chr < sorted[j].Chr })
+	offs := make(map[string]int, len(sorted))
+	cumsum := 0
+	for _, e := range sorted {
 		offs[e.ChrStr] = cumsum
 		// cumsum += 1000 + e.Bp2 - e.Bp
 		cumsum += e.Bp2 - e.Bp
@@ -170,16 +202,22 @@ func appendPlsChrBed(data Entries, offsets map[string]int, w io.Writer) {
 }
 
 func Plfmt(flags Flags, r io.Reader, w io.Writer) {
-	data, err, _ := GetData(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header)
-	if err != nil { panic(err) }
-	if flags.ChrBedPath == "" {
-		append_pls(data, w)
-	} else {
-		chrlens, err := ReadChrBed(flags.ChrBedPath)
-		if err != nil { panic(err) }
-		chroffsets := GetOffsets(chrlens)
-		appendPlsChrBed(data, chroffsets, w)
+	chrflag := NUMERIC
+	if flags.Named {
+		chrflag = INORDER
 	}
+	chrlens, err := ReadChrBed(flags.ChrBedPath, chrflag)
+	if err != nil { panic(err) }
+
+	chrflag = NUMERIC
+	if flags.Named {
+		chrflag = NAMED
+	}
+	data, err, _ := GetData(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header, chrflag, chrlens)
+	if err != nil { panic(err) }
+
+	chroffsets := GetOffsets(chrlens)
+	appendPlsChrBed(data, chroffsets, w)
 }
 
 func GetFlags() (f Flags) {
@@ -188,6 +226,7 @@ func GetFlags() (f Flags) {
 	flag.IntVar(&f.BpCol, "b", -1, "Column containing basepair position.")
 	flag.IntVar(&f.BpCol2, "b2", -1, "Column containing end coordinates of spans (optional).")
 	flag.StringVar(&f.ChrBedPath, "C", "", "Path to .bed file containing all chromosomes' lengths.")
+	flag.BoolVar(&f.Named, "n", false, "Instead of having numbered chromosomes in format \"chr[0-9]*\", use the order of chromosomes in the -C bed file.")
 	flag.Parse()
 	if f.ChrCol == -1 || f.BpCol == -1 || f.ChrBedPath == "" {
 		panic(fmt.Errorf("Missing argument"))
