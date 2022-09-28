@@ -37,6 +37,13 @@ read_combined_pvals <- function(inpath) {
 	return(giant)
 }
 
+read_pvals_nowin <- function(inpath) {
+	giant = as.data.frame(fread(inpath), header=TRUE)
+	colnames(giant) = c("chrom", "BP", "PFST", "CHR", "cumsum.tmp")
+	giant$VAL = -log10(giant$PFST)
+	return(giant)
+}
+
 # FST win is in bed format
 read_bed <- function(inpath, nlog) {
 	giant = as.data.frame(fread(inpath), header=FALSE)
@@ -115,11 +122,26 @@ nothreshcolor <- function(data, chrcol) {
 
 join <- function(datas, thresholds, names, threshold_names) {
 	for (i in 1:length(names)) {
-		datas[[i]]$NAME = names[i]
+		if (nrow(datas[[i]]) > 0) {
+			datas[[i]]$NAME = names[i]
+		}
 	}
 	outdata = as.data.frame(
 		do.call("rbind",
-			lapply(datas, function(x) { return(x[,c("CHR", "BP", "cumsum.tmp", "VAL", "NAME", "color")]) })
+			lapply(datas, function(x) {
+				if (nrow(x) > 0) {
+					return(x[,c("CHR", "BP", "cumsum.tmp", "VAL", "NAME", "color")])
+				}
+				
+				return(data.frame(
+					numeric(),
+					numeric(),
+					numeric(),
+					character(),
+					character(),
+					stringsAsFactors = FALSE
+				))
+			})
 		)
 	)
 

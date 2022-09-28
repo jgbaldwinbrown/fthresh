@@ -40,13 +40,13 @@ func RunGood2Plots() {
 	fmt.Println(goodsAndAlts)
 	// statistics := []string{"pFst", "Fst", "Selec"}
 	statistics := []string{"pFst", "Fst"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, false, flags.Threads)
 	for _, err := range errors {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
 	fmt.Fprintf(os.Stderr, "g three\n")
 
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.Threads)
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, false, flags.Threads)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}

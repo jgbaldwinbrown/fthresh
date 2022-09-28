@@ -48,6 +48,16 @@ func HeightMap() map[string]string {
 	}
 }
 
+func HeightMapFull() map[string]string {
+	return  map[string]string {
+		"black": "Full",
+		"white": "Full",
+		"feral": "Full",
+		"figurita": "Full",
+		"runt": "Full",
+	}
+}
+
 // func HeightMap() map[string]string {
 // 	return  map[string]string {
 // 		"black": "Low",
@@ -139,6 +149,19 @@ func GggenesBedString(breed1, bit1, breed2, bit2 string) string {
 	)
 }
 
+func GggenesBedStringFull(breed1, bit1, breed2, bit2 string) string {
+	return fmt.Sprintf(
+		"_breed_%v_time_36_bit_%v_replicate_All_breed_%v_time_36_bit_%v_replicate_All_%v_%v_%v___multiplot_gggenes_thresholded_intervals.bed",
+		FormatMap()[breed1],
+		FormatMap()[bit1],
+		FormatMap()[breed2],
+		FormatMap()[bit2],
+		TraitMap()[breed1],
+		HeightMapFull()[breed1],
+		HeightMapFull()[breed2],
+	)
+}
+
 func PlfmtMap() map[string]string {
 	return map[string]string {
 		"pFst": "pfst_plfmt",
@@ -181,6 +204,26 @@ func BedString(breed1, bit1 string, rep1, gen1 int, breed2, bit2 string, rep2, g
 		PlfmtMap()[statistic],
 	)
 }
+
+func BedStringFull(breed1, bit1 string, rep1, gen1 int, breed2, bit2 string, rep2, gen2 int, statistic string) string {
+	return fmt.Sprintf(
+		"_breed_%v_time_%v_bit_%v_replicate_%v_breed_%v_time_%v_bit_%v_replicate_%v_%v_%v_%v___multiplot_%v_tm_perc_thresh_merge.bed",
+		FormatMap()[breed1],
+		gen1,
+		FormatMap()[bit1],
+		FormatRep(rep1),
+
+		FormatMap()[breed2],
+		gen2,
+		FormatMap()[bit2],
+		FormatRep(rep2),
+
+		TraitMap()[breed1],
+		HeightMapFull()[breed1],
+		HeightMapFull()[breed2],
+		PlfmtMap()[statistic],
+	)
+}
 // _breed_Figurita_time_36_bit_Unbitted_replicate_All_breed_Runt_time_36_bit_Unbitted_replicate_All_Size_Low_High___multiplot_fst_plfmt_tm_thresh_merge.bed
 // _breed_Figurita_time_36_bit_Unbitted_replicate_All_breed_Runt_time_36_bit_Unbitted_replicate_All_Size_Low_High___multiplot_pfst_plfmt_tm_thresh_merge.bed
 // _breed_Figurita_time_36_bit_Unbitted_replicate_All_breed_Runt_time_36_bit_Unbitted_replicate_All_Size_Low_High___multiplot_selec_plfmt_bedified_tm_thresh_merge.bed
@@ -217,6 +260,27 @@ func PrintLine(breed1, bit1, breed2, bit2 string) {
 		"%v\t%v\t%v\t%v\t%v\n",
 		SyncString(breed1, bit1),
 		GggenesBedString(breed1, bit1, breed2, bit2),
+		InfoString(breed1, bit1),
+		OutprefixString(breed1, bit1, breed2, bit2),
+		OutprefixString(breed1, bit1, breed2, bit2),
+	)
+}
+
+func PrintLineFull(breed1, bit1, breed2, bit2 string) {
+	bp1, bp2 := BreedPriority()[breed1], BreedPriority()[breed2]
+	if bp2 > bp1 {
+		breed1, bit1, breed2, bit2 = breed2, bit2, breed1, bit1
+	}
+	if bp2 == bp1 {
+		bp1, bp2 = BitPriority()[bit1], BitPriority()[bit2]
+		if bp2 > bp1 {
+			breed1, bit1, breed2, bit2 = breed2, bit2, breed1, bit1
+		}
+	}
+	fmt.Printf(
+		"%v\t%v\t%v\t%v\t%v\n",
+		SyncString(breed1, bit1),
+		GggenesBedStringFull(breed1, bit1, breed2, bit2),
 		InfoString(breed1, bit1),
 		OutprefixString(breed1, bit1, breed2, bit2),
 		OutprefixString(breed1, bit1, breed2, bit2),

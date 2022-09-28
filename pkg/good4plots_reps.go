@@ -35,7 +35,7 @@ func RunGood4PlotsReps() {
 
 	goodsAndAlts := PrebuiltGoodAndAltsReps()
 	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads)
 	for _, err := range errors {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -49,7 +49,7 @@ func RunGood4PlotsReps() {
 		fmt.Fprintln(pathsconn, path)
 	}
 
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.Threads)
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}

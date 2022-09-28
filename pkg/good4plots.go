@@ -109,6 +109,10 @@ func (c Comp) Path(statistic string) string {
 	return BedString(c.Breed1, c.Bit1, c.Rep1, c.Gen1, c.Breed2, c.Bit2, c.Rep2, c.Gen2, statistic)
 }
 
+func (c Comp) PathFull(statistic string) string {
+	return BedStringFull(c.Breed1, c.Bit1, c.Rep1, c.Gen1, c.Breed2, c.Bit2, c.Rep2, c.Gen2, statistic)
+}
+
 func (c Comp) OutputPrefix(statistic string) string {
 	return CompOutput(c.Breed1, c.Bit1, statistic, c.Rep1)
 }
@@ -163,6 +167,7 @@ type Plot4Flags struct {
 	Percentile float64
 	GoodsAndAltsPath string
 	SubFull bool
+	FullReps bool
 }
 
 func GetPlot4Flags() Plot4Flags {
@@ -171,6 +176,7 @@ func GetPlot4Flags() Plot4Flags {
 	flag.IntVar(&f.Threads, "t", 1, "Threads to use")
 	percstring := flag.String("p", ".001", "Percentile threshold")
 	flag.BoolVar(&f.SubFull, "s", false, "Set to subtract entire region if it partially intersects with alt")
+	flag.BoolVar(&f.FullReps, "f", false, "Use all indivs in each replicate, not just top/bottom 20%")
 	// flag.StringVar(&f.GoodsAndAltsPath, "g", "", "Path to tab-separated sets of good and alt comparisons")
 	flag.Parse()
 
@@ -185,18 +191,25 @@ func GetPlot4Flags() Plot4Flags {
 	return f
 }
 
-func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool) (outpath string, err error) {
+func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps bool) (outpath string, err error) {
 	fmt.Fprintln(os.Stderr, "subtracting:", gset, statistic, subfull)
-	good, err := ReadPath(gset.Good.Path(statistic), func(r io.Reader) (permuvals.Bed, error) {
-		return permuvals.GetBed(r, gset.Good.Path(statistic))
+	goodpath := gset.Good.Path(statistic)
+	if fullreps {
+		goodpath = gset.Good.PathFull(statistic)
+	}
+	good, err := ReadPath(goodpath, func(r io.Reader) (permuvals.Bed, error) {
+		return permuvals.GetBed(r, goodpath)
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr,"Error!")
 		return "", err
 	}
 	for _ , altcomp := range gset.Alts {
-		fmt.Println("path to subtract:", altcomp.Path(statistic))
 		path := altcomp.Path(statistic)
+		if fullreps {
+			path = altcomp.PathFull(statistic)
+		}
+		fmt.Println("path to subtract:", path)
 		alt, err := ReadPath(path, func(r io.Reader) (permuvals.Bed, error) {
 			return permuvals.GetBed(r, path)
 		})
@@ -232,6 +245,7 @@ type subtractAllArgs struct {
 	gset GoodAndAlts
 	statistic string
 	subfull bool
+	fullreps bool
 }
 
 type subtractAllOuts struct {
@@ -239,7 +253,7 @@ type subtractAllOuts struct {
 	err error
 }
 
-func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull bool) []subtractAllArgs {
+func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool) []subtractAllArgs {
 	njobs := len(gsets) * len(statistics)
 	mod := len(statistics)
 	out := make([]subtractAllArgs, njobs)
@@ -251,11 +265,11 @@ func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull boo
 	return out
 }
 
-func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, subfull bool, threads int) (outpaths []string, errs []error) {
-	args := aggregateSubtractArgs(gsets, statistics, subfull)
+func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool, threads int) (outpaths []string, errs []error) {
+	args := aggregateSubtractArgs(gsets, statistics, subfull, fullreps)
 	f := func(a subtractAllArgs) subtractAllOuts {
 		var o subtractAllOuts
-		o.outpath, o.err = SubtractAlts(a.gset, a.statistic, a.subfull)
+		o.outpath, o.err = SubtractAlts(a.gset, a.statistic, a.subfull, a.fullreps)
 		return o
 	}
 	out := pmap.Map(f, args, threads)
@@ -287,7 +301,7 @@ func RunGood4Plots() {
 
 	goodsAndAlts := PrebuiltGoodAndAlts()
 	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads)
 	for _, err := range errors {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
@@ -299,7 +313,7 @@ func RunGood4Plots() {
 		fmt.Fprintln(pathsconn, path)
 	}
 
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.Threads)
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
