@@ -201,6 +201,46 @@ func appendPlsChrBed(data Entries, offsets map[string]int, w io.Writer) {
 	}
 }
 
+func StreamPlsChrBed(r io.Reader, chrcol int, bpcol int, bpcol2 int, header bool, chrflag int, chrlens Entries, w io.Writer) error {
+	bw := bufio.NewWriter(w)
+	defer bw.Flush()
+	offsets := GetOffsets(chrlens)
+	s := bufio.NewScanner(r)
+
+	if header {
+		s.Scan()
+	}
+
+	chrnames := make(map[string]int)
+	if chrflag == NAMED {
+		for _, e := range chrlens {
+			chrnames[e.ChrStr] = e.Chr
+		}
+	}
+
+	for i:=1; s.Scan(); i++ {
+		line := strings.Split(s.Text(), "\t")
+		var e Entry
+		var err error
+		e, err = GetEntry(line, chrcol, bpcol, bpcol2, chrflag, chrnames)
+		if err != nil {
+			return err
+		}
+		if chrflag == INORDER {
+			e.Chr = i
+		}
+		cumsum := e.Bp + offsets[e.ChrStr]
+
+		cumsum2 := -1
+		if e.Bp2 != -1 {
+			cumsum2 = e.Bp2 + offsets[e.ChrStr]
+		}
+
+		FprintEntry(bw, e, cumsum, cumsum2)
+	}
+	return nil
+}
+
 func Plfmt(flags Flags, r io.Reader, w io.Writer) {
 	chrflag := NUMERIC
 	if flags.Named {
@@ -213,11 +253,13 @@ func Plfmt(flags Flags, r io.Reader, w io.Writer) {
 	if flags.Named {
 		chrflag = NAMED
 	}
-	data, err, _ := GetData(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header, chrflag, chrlens)
-	if err != nil { panic(err) }
+	// data, err, _ := GetData(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header, chrflag, chrlens)
+	// if err != nil { panic(err) }
 
-	chroffsets := GetOffsets(chrlens)
-	appendPlsChrBed(data, chroffsets, w)
+	// chroffsets := GetOffsets(chrlens)
+	// appendPlsChrBed(data, chroffsets, w)
+
+	StreamPlsChrBed(r, flags.ChrCol, flags.BpCol, flags.BpCol2, flags.Header, chrflag, chrlens, w)
 }
 
 func GetFlags() (f Flags) {
