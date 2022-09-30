@@ -75,5 +75,11 @@ cp scripts/fdr_it.py ~/mybin/fdr_it
 chmod +x ~/mybin/fdr_it
 cp scripts/plfmt.py ~/mybin/plfmt
 chmod +x ~/mybin/plfmt
+cp scripts/all_winplot_multipheno.sh ~/mybin/all_winplot_multipheno
+chmod +x ~/mybin/all_winplot_multipheno
+cp scripts/prep_all_full.sh ~/mybin/prep_all_full
+chmod +x ~/mybin/prep_all_full
+cp scripts/good4plotsfullwrap.sh ~/mybin/good4plotsfullwrap
+chmod +x ~/mybin/good4plotsfullwrap
 
 cp scripts/plot_pretty_multiple_helpers.R ~/rlibs
