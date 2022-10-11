@@ -25,7 +25,7 @@ func PrebuiltGoodAndAltsReps() []GoodAndAlts {
 
 func RunGood4PlotsReps() {
 	flags := GetPlot4Flags()
-	plot_sets := ReadPlotSets(os.Stdin)
+	plot_sets := ReadCfgPlotSets(os.Stdin)
 	runtime.GOMAXPROCS(flags.Threads)
 
 	errors := PercTMASets(plot_sets, flags.Percentile)

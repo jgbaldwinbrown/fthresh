@@ -68,7 +68,7 @@ func AddManhattanPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	m.Add(r)
 }
 
-func MakeManhatMakefile(r io.Reader, chrlenpath string) *makem.MakeData {
+func MakeManhatMakefileOldCfg(r io.Reader, chrlenpath string) *makem.MakeData {
 	makefile := new(makem.MakeData)
 
 	s := bufio.NewScanner(r)
@@ -76,6 +76,22 @@ func MakeManhatMakefile(r io.Reader, chrlenpath string) *makem.MakeData {
 
 	for s.Scan() {
 		AddManhattanPlotSet(makefile, ParsePlotSet(s.Text()), chrlenpath)
+	}
+
+	return makefile
+}
+
+func MakeManhatMakefile(r io.Reader, chrlenpath string) *makem.MakeData {
+	makefile := new(makem.MakeData)
+
+	config, err := ReadComboConfig(r)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, cfg := range config {
+		plotset := ConfigToPlotSet(cfg)
+		AddManhattanPlotSet(makefile, plotset, chrlenpath)
 	}
 
 	return makefile

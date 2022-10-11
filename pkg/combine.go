@@ -107,6 +107,10 @@ func (i Ident) Match(i2 Ident) bool {
 	return i.Breed == i2.Breed && i.Bit == i2.Bit && i.Repl == i2.Repl
 }
 
+func (i Ident) MatchExceptRepl(i2 Ident) bool {
+	return i.Breed == i2.Breed && i.Bit == i2.Bit
+}
+
 func (f Fst) FstIdent() (out Ident) {
 	re := regexp.MustCompile(`_breed_([a-zA-Z]*)_time_[^_]*_bit_([a-zA-Z]*)_replicate_([a-zA-Z0-9]*)`)
 	matches := re.FindStringSubmatch(f.Ident)
@@ -120,6 +124,24 @@ func (f Fst) FstIdent() (out Ident) {
 	return out
 }
 // /media/jgbaldwinbrown/3564-3063/jgbaldwinbrown/Documents/work_stuff/louse/poolfstat/from_laptop/vcftools_reruns/allnames/_breed_BlackHomer_time_36_bit_Unbitted_replicate_R1_breed_WhiteHomer_time_36_bit_Unbitted_replicate_R1_Color_Low_High__fst/_breed_BlackHomer_time_36_bit_Unbitted_replicate_R1_breed_WhiteHomer_time_36_bit_Unbitted_replicate_R1_Color_Low_High__fst.weir.fst_win.txt
+
+func (f Fst) FstIdents() []Ident {
+	re := regexp.MustCompile(`breed_([a-zA-Z]*)_time_[^_]*_bit_([a-zA-Z]*)_replicate_([a-zA-Z0-9]*)`)
+	matches := re.FindAllStringSubmatch(f.Ident, -1)
+	var outs []Ident
+	for _, match := range matches {
+		var out Ident
+		out.Breed = strings.ReplaceAll(strings.ToLower(match[1]), "homer", "")
+		out.Bit = strings.ToLower(match[2])
+		if match[3] == "All" {
+			out.Repl = match[3]
+		} else {
+			out.Repl = strings.ReplaceAll(match[3], "R", "")
+		}
+		outs = append(outs, out)
+	}
+	return outs
+}
 
 func (f Fst) SelecIdent() (out Ident) {
 	re := regexp.MustCompile(`([a-z]*)_[a-z]*_([a-z]*).*(_repl([0-9]*))?`)
@@ -137,7 +159,7 @@ func (f Fst) SelecIdent() (out Ident) {
 
 
 func (f Fst) MatchSelec(selec Fst) bool {
-	return f.FstIdent().Match(selec.SelecIdent())
+	return f.FstIdent().MatchExceptRepl(selec.SelecIdent())
 }
 
 // rk_stuff/louse/s_estimation/partials/window/white_pooled_unbitted_tle30_s_coeff_win1k.txt

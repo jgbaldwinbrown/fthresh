@@ -114,7 +114,7 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	// selec_sig_path = args[7]
 }
 
-func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
+func MakeGoodsMakefileOldCfg(r io.Reader, chrlenspath string) *makem.MakeData {
 	makefile := new(makem.MakeData)
 
 	s := bufio.NewScanner(r)
@@ -122,6 +122,20 @@ func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
 
 	for s.Scan() {
 		AddGoodPlotSet(makefile, ParsePlotSet(s.Text()), chrlenspath)
+	}
+
+	return makefile
+}
+
+func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
+	makefile := new(makem.MakeData)
+	cfgs, err := ReadComboConfig(r)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, cfg := range cfgs {
+		AddGoodPlotSet(makefile, ConfigToPlotSet(cfg), chrlenspath)
 	}
 
 	return makefile

@@ -18,7 +18,7 @@ func AddEntry(m *makem.MakeData, s string, f Flags) {
 	plot := s + "_win_fdr_plot.png"
 
 	if f.WinSize != 50000 || f.WinStep != 5000 {
-		winprefix := fmt.Sprintf("%s_win_%d_%d", s, f.WinSize, f.WinStep)
+		winprefix := fmt.Sprintf("%s_win%d_%d", s, f.WinSize, f.WinStep)
 		win = winprefix + ".txt"
 		winbed = winprefix + ".bed"
 		winfdr = winprefix + "_fdr.bed"
@@ -80,6 +80,7 @@ func GetFlags() Flags {
 	var f Flags
 	flag.IntVar(&f.WinSize, "w", 50000, "Window size")
 	flag.IntVar(&f.WinStep, "s", 5000, "Window size")
+	flag.Parse()
 	return f
 }
 

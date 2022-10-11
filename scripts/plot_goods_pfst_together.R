@@ -61,13 +61,23 @@ main <- function() {
 	thresholds = joinlist[[2]]
 
 	black_pfst_sig_rect = bed2rect(black_pfst_sig_path)
-	black_pfst_sig_rect$NAME = "black"
+	if (nrow(black_pfst_sig_rect) > 0) {
+		black_pfst_sig_rect$NAME = "black"
+	}
 	white_pfst_sig_rect = bed2rect(white_pfst_sig_path)
-	white_pfst_sig_rect$NAME = "white"
+	if (nrow(white_pfst_sig_rect) > 0) {
+		white_pfst_sig_rect$NAME = "white"
+	}
 	runt_pfst_sig_rect = bed2rect(runt_pfst_sig_path)
-	runt_pfst_sig_rect$NAME = "runt"
+	if (nrow(runt_pfst_sig_rect) > 0) {
+		runt_pfst_sig_rect$NAME = "runt"
+	}
 	figurita_pfst_sig_rect = bed2rect(figurita_pfst_sig_path)
-	figurita_pfst_sig_rect$NAME = "figurita"
+	if (nrow(figurita_pfst_sig_rect) > 0) {
+		figurita_pfst_sig_rect$NAME = "figurita"
+	}
+
+	print("pre sig boxes")
 
 	significant_boxes = as.data.frame(rbind(
 		black_pfst_sig_rect,
@@ -76,6 +86,8 @@ main <- function() {
 		figurita_pfst_sig_rect
 	))
 
+	print("pre scales_y")
+
 	scales_y = list (
 		`black` = scale_y_continuous(limits = c(0, 350)),
 		`white` = scale_y_continuous(limits = c(0, 350)),
@@ -83,12 +95,16 @@ main <- function() {
 		`figurita` = scale_y_continuous(limits = c(0, 350))
 	)
 
+	print("pre text")
+
 	text = data.frame(
 		x = c(0,0,0,0),
 		y = c(350,350,350,350),
 		NAME = c("black", "white", "runt", "figurita"),
 		textlabel = c("Color (dark)", "Color (light)", "Size (large)", "Size (small)")
 	)
+
+	print("pre plot")
 
 	plot_scaled_y_boxed_text(data, VAL, out_path, 20, 8, 300, thresholds, calc_chrom_labels(black_pfst), scales_y, significant_boxes, text)
 }

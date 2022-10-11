@@ -33,6 +33,32 @@ func ParsePlotSet(s string) PlotSet {
 	return set
 }
 
+func ConfigToPlotSet(c ComboConfig) PlotSet {
+	out := PlotSet{}
+	out.Pfst = c.Pfst
+	out.Fst = c.Fst
+	out.Selec = c.Selec
+	out.Out = c.OutPrefix
+	out.GoodPfstSpans = c.Subtractions
+	return out
+}
+
+func ConfigsToPlotSets(cs ...ComboConfig) []PlotSet {
+	out := make([]PlotSet, len(cs))
+	for i, c := range cs {
+		out[i] = ConfigToPlotSet(c)
+	}
+	return out
+}
+
+func ReadCfgPlotSets(r io.Reader) PlotSets {
+	cfgs, err := ReadComboConfig(r)
+	if err != nil {
+		panic(err)
+	}
+	return ConfigsToPlotSets(cfgs...)
+}
+
 func ReadPlotSets(r io.Reader) (ps PlotSets) {
 	s := bufio.NewScanner(r)
 	for s.Scan() {

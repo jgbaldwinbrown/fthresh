@@ -188,39 +188,49 @@ plot_scaled_y <- function(data, valcol, path, width, height, res_scale, threshol
 
 plot_scaled_y_boxed <- function(data, valcol, path, width, height, res_scale, thresholds, medians, scales_y, rect) {
 	print(rect)
+
+	a = ggplot(data = data) +
+	geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
+	geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
+	scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
+	guides(colour=FALSE) +
+	xlab("Chromosome") +
+	ylab(expression(-log[10](italic(p)))) +
+	scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
+	theme_bw() + 
+	facet_grid_sc(NAME~., scales=list(y=scales_y)) +
+	theme(text = element_text(size=24))
+
+	if (nrow(rect) > 0) {
+		a = a + geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3)
+	}
+
 	png(path, width = width * res_scale, height = height * res_scale, res = res_scale)
-		a = ggplot(data = data) +
-		geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3) +
-		geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
-		geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
-		scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
-		guides(colour=FALSE) +
-		xlab("Chromosome") +
-		ylab(expression(-log[10](italic(p)))) +
-		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
-		theme_bw() + 
-		facet_grid_sc(NAME~., scales=list(y=scales_y)) +
-		theme(text = element_text(size=24))
 		print(a)
 	dev.off()
 }
 
 plot_scaled_y_boxed_text <- function(data, valcol, path, width, height, res_scale, thresholds, medians, scales_y, rect, text) {
 	print(rect)
+
+	a = ggplot(data = data)
+
+	if (nrow(rect) > 0) {
+		a = a + geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3)
+	}
+
+	a = a + geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) + geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
+	geom_text(data = text, aes(x = x, y = y, label = textlabel)) +
+	scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
+	guides(colour=FALSE) +
+	xlab("Chromosome") +
+	ylab(expression(-log[10](italic(p)))) +
+	scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
+	theme_bw() + 
+	facet_grid_sc(factor(NAME, levels=c("black", "white", "figurita", "runt"))~., scales=list(y=scales_y)) +
+	theme(text = element_text(size=24))
+
 	png(path, width = width * res_scale, height = height * res_scale, res = res_scale)
-		a = ggplot(data = data) +
-		geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#5555DD", color = "#5555DD", alpha = 0.3) +
-		geom_point(aes(x = cumsum.tmp, y = VAL, color = color)) +
-		geom_hline(data = thresholds, aes(yintercept = THRESH), linetype="dashed") +
-		geom_text(data = text, aes(x = x, y = y, label = textlabel)) +
-		scale_x_continuous(breaks = medians$median.x, labels = medians$CHR) +
-		guides(colour=FALSE) +
-		xlab("Chromosome") +
-		ylab(expression(-log[10](italic(p)))) +
-		scale_color_manual(values = c(gray(0.5), gray(0), "#EE2222"))+
-		theme_bw() + 
-		facet_grid_sc(factor(NAME, levels=c("black", "white", "figurita", "runt"))~., scales=list(y=scales_y)) +
-		theme(text = element_text(size=24))
 		print(a)
 	dev.off()
 }

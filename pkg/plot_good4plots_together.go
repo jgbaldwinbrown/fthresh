@@ -66,7 +66,7 @@ plot_goods_pfst_together_nowin \
 }
 
 func PlotSetToTogetherScript() {
-	plotsets := ReadPlotSets(os.Stdin)
+	plotsets := ReadCfgPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
@@ -77,7 +77,7 @@ func PlotSetToTogetherScript() {
 }
 
 func PlotSetToTogetherSubFullScript() {
-	plotsets := ReadPlotSets(os.Stdin)
+	plotsets := ReadCfgPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
@@ -174,7 +174,7 @@ func FprintPlotTogetherReps(w io.Writer, pfstpaths, sigpaths []string) {
 }
 
 func PlotSetToTogetherSubFullScriptReps() {
-	plotsets := ReadPlotSets(os.Stdin)
+	plotsets := ReadCfgPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
@@ -243,7 +243,7 @@ func PlotSetToTogetherSubFullScriptRepsTop() {
 	flag.BoolVar(&fullreps, "f", false, "use all indivs from each rep")
 	flag.BoolVar(&nowin, "n", false, "use unwindowed values")
 	flag.Parse()
-	plotsets := ReadPlotSets(os.Stdin)
+	plotsets := ReadCfgPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {

@@ -101,7 +101,7 @@ func GggenesBedNofstNoselec(bed [][]string, a GggenesArgs, outprefix string) err
 
 
 func GggenesFullNofstNoselec() {
-	plot_sets := ReadPlotSets(os.Stdin)
+	plot_sets := ReadCfgPlotSets(os.Stdin)
 
 	all_bedpaths := GetAllBedpathsGggenesPerc(plot_sets)
 

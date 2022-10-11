@@ -291,7 +291,12 @@ func PercTMASets(sets PlotSets, percentile float64) (errors []error) {
 
 func RunGood4Plots() {
 	flags := GetPlot4Flags()
-	plot_sets := ReadPlotSets(os.Stdin)
+	// plot_sets := ReadPlotSets(os.Stdin)
+	cfgs, err := ReadComboConfig(os.Stdin)
+	if err != nil {
+		panic(err)
+	}
+	plot_sets := ConfigsToPlotSets(cfgs...)
 	runtime.GOMAXPROCS(flags.Threads)
 
 	errors := PercTMASets(plot_sets, flags.Percentile)
