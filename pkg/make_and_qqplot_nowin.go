@@ -39,12 +39,16 @@ func AddManhattanPlotSetNowin(m *makem.MakeData, p PlotSet, chrlenspath string) 
 
 	r = makem.Recipe{}
 	r.AddTargets(selec_plfmt)
-	r.AddDeps(p.Selec)
-	if chrlenspath != "" {
-		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+	if p.Selec == "" {
+		r.AddScripts("touch $@")
 	} else {
-		panic(fmt.Errorf("no chrlenspath"))
-		r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+		r.AddDeps(p.Selec)
+		if chrlenspath != "" {
+			r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+		} else {
+			panic(fmt.Errorf("no chrlenspath"))
+			r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+		}
 	}
 	m.Add(r)
 

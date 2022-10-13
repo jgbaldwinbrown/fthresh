@@ -37,6 +37,9 @@ fi
 	good4plots -p 0.001 -t 4 -f
 
 	cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
+	good4plots_reps -p 0.001 -t 4 -f
+
+	cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
 	plot_good4plots louse_genome_0.1.1.chrlens.bed
 
 	cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
@@ -44,11 +47,8 @@ fi
 	> plot_good4plotsfull_script${WINSTR}.sh
 
 
-	cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
-	good4plots_reps -p 0.001 -t 4 -f
-
-	cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
-	plot_good4plots_reps louse_genome_0.1.1.chrlens.bed
+	# cat pfst_fst_selec_combo${WINSTR}_full_json.txt | \
+	# plot_good4plots_reps louse_genome_0.1.1.chrlens.bed
 
 	echo "four"
 

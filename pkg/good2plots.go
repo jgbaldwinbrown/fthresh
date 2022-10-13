@@ -26,7 +26,7 @@ func PrebuiltGoodAndAlts2() []GoodAndAlts {
 
 func RunGood2Plots() {
 	flags := GetPlot4Flags()
-	plot_sets := ReadPlotSets(os.Stdin)
+	cfgs, plot_sets := ReadCfgsAndPlotSets(os.Stdin)
 	runtime.GOMAXPROCS(flags.Threads)
 
 	fmt.Fprintf(os.Stderr, "g one\n")
@@ -40,13 +40,13 @@ func RunGood2Plots() {
 	fmt.Println(goodsAndAlts)
 	// statistics := []string{"pFst", "Fst", "Selec"}
 	statistics := []string{"pFst", "Fst"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, false, flags.Threads)
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, false, flags.Threads, cfgs)
 	for _, err := range errors {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
 	fmt.Fprintf(os.Stderr, "g three\n")
 
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, false, flags.Threads)
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, false, flags.Threads, cfgs)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}

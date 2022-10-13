@@ -14,11 +14,11 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	selec_plfmt := p.Out + "_selec_plfmt.bed"
 
 	goodpre := p.GoodPfstSpans
-	goods := goodpre
-	goods_plfmt := goodpre + "_plfmt.bed"
-	goods_plot := goodpre + "_plot.png"
+	// goods := goodpre
+	// goods_plfmt := goodpre + "_plfmt.bed"
+	// goods_plot := goodpre + "_plot.png"
 
-	goods_subfull := SubFullPath(goodpre)
+	goods_subfull := goodpre
 	goods_subfull_plfmt := goods_subfull + "_plfmt.bed"
 	goods_subfull_plot := goods_subfull + "_plot.bed"
 
@@ -53,11 +53,15 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 
 	r = makem.Recipe{}
 	r.AddTargets(selec_plfmt)
-	r.AddDeps(p.Selec)
-	if chrlenspath != "" {
-		r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+	if p.Selec == "" {
+		r.AddScripts("touch $@")
 	} else {
-		r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+		r.AddDeps(p.Selec)
+		if chrlenspath != "" {
+			r.AddScripts("plfmt_flex -C " + chrlenspath + " -c 0 -b 1 -H <$< > $@")
+		} else {
+			r.AddScripts("plfmt_flex -c 0 -b 1 -H <$< > $@")
+		}
 	}
 	m.Add(r)
 
@@ -70,22 +74,6 @@ func AddGoodPlotSet(m *makem.MakeData, p PlotSet, chrlenspath string) {
 	r.AddTargets(out_noselec)
 	r.AddDeps(pfst_plfmt, fst_plfmt)
 	r.AddScripts("#plot_pfst_fst $^ " + out_noselec)
-	m.Add(r)
-
-	r = makem.Recipe{}
-	r.AddTargets(goods_plfmt)
-	r.AddDeps(goods)
-	if chrlenspath != "" {
-		r.AddScripts("plfmt_flex -c 0 -b 1 -b2 2 -C " + chrlenspath + " < $< > $@")
-	} else {
-		r.AddScripts("plfmt_flex -c 0 -b 1 -b2 2 < $< > $@")
-	}
-	m.Add(r)
-
-	r = makem.Recipe{}
-	r.AddTargets(goods_plot)
-	r.AddDeps(pfst_plfmt, fst_plfmt, selec_plfmt, goods_plfmt)
-	r.AddScripts("#plot_goods $^ " + goods_plot)
 	m.Add(r)
 
 	r = makem.Recipe{}
@@ -135,7 +123,9 @@ func MakeGoodsMakefile(r io.Reader, chrlenspath string) *makem.MakeData {
 	}
 
 	for _, cfg := range cfgs {
-		AddGoodPlotSet(makefile, ConfigToPlotSet(cfg), chrlenspath)
+		if cfg.ComparisonType == "experimental" {
+			AddGoodPlotSet(makefile, ConfigToPlotSet(cfg), chrlenspath)
+		}
 	}
 
 	return makefile

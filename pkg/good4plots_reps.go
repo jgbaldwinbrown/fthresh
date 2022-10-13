@@ -23,19 +23,8 @@ func PrebuiltGoodAndAltsReps() []GoodAndAlts {
 	return ga
 }
 
-func RunGood4PlotsReps() {
-	flags := GetPlot4Flags()
-	plot_sets := ReadCfgPlotSets(os.Stdin)
-	runtime.GOMAXPROCS(flags.Threads)
-
-	errors := PercTMASets(plot_sets, flags.Percentile)
-	for _, err := range errors {
-		if err != nil { fmt.Fprintln(os.Stderr, err) }
-	}
-
-	goodsAndAlts := PrebuiltGoodAndAltsReps()
-	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads)
+func PartialSubtractReps(flags Plot4Flags, goodsAndAlts []GoodAndAlts, statistics []string, cfgs []ComboConfig) {
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads, cfgs)
 	for _, err := range errors {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -48,8 +37,22 @@ func RunGood4PlotsReps() {
 	for _, path := range outpaths {
 		fmt.Fprintln(pathsconn, path)
 	}
+}
 
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads)
+func RunGood4PlotsReps() {
+	flags := GetPlot4Flags()
+	cfgs, plot_sets := ReadCfgsAndPlotSets(os.Stdin)
+	runtime.GOMAXPROCS(flags.Threads)
+
+	errors := PercTMASets(plot_sets, flags.Percentile)
+	for _, err := range errors {
+		if err != nil { fmt.Fprintln(os.Stderr, err) }
+	}
+
+	goodsAndAlts := PrebuiltGoodAndAltsReps()
+	statistics := []string{"pFst", "Fst", "Selec"}
+
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads, cfgs)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}

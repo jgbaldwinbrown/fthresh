@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+echo "one"
+
 go mod tidy
 
 (cd cmd && (
@@ -8,6 +10,8 @@ go mod tidy
 		go build $i
 	done
 ))
+
+echo "two"
 
 cp cmd/thresh_and_permuval ~/mybin/
 cp cmd/thresh_and_permuval_rvr ~/mybin/
@@ -33,11 +37,15 @@ cp cmd/plot_good2plots_together ~/mybin/
 cp cmd/thresh_merge_and_gggenes ~/mybin/
 # cp cmd/gggenes_noselec ~/mybin/
 
+echo "three"
+
 (cd scripts && (
 	ls -1d *.go | while read i ; do
 		go build $i
 	done
 ))
+
+echo "four"
 
 cp scripts/make_all_plots ~/mybin/
 cp scripts/make_all_plots_nowin ~/mybin/
@@ -84,3 +92,5 @@ cp scripts/good4plotsfullwrap.sh ~/mybin/good4plotsfullwrap
 chmod +x ~/mybin/good4plotsfullwrap
 
 cp scripts/plot_pretty_multiple_helpers.R ~/rlibs
+
+echo "five"

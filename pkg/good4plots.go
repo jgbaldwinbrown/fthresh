@@ -191,12 +191,15 @@ func GetPlot4Flags() Plot4Flags {
 	return f
 }
 
-func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps bool) (outpath string, err error) {
+func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps bool, cfg ComboConfig, cfgs []ComboConfig) (outpath string, err error) {
 	fmt.Fprintln(os.Stderr, "subtracting:", gset, statistic, subfull)
-	goodpath := gset.Good.Path(statistic)
-	if fullreps {
-		goodpath = gset.Good.PathFull(statistic)
-	}
+	// goodpath := gset.Good.Path(statistic)
+	// if fullreps {
+	// 	goodpath = gset.Good.PathFull(statistic)
+	// }
+
+	goodpath := cfg.OutPrefix + "_pfst_plfmt_tm_perc_thresh_merge.bed"
+
 	good, err := ReadPath(goodpath, func(r io.Reader) (permuvals.Bed, error) {
 		return permuvals.GetBed(r, goodpath)
 	})
@@ -204,12 +207,19 @@ func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps boo
 		fmt.Fprintln(os.Stderr,"Error!")
 		return "", err
 	}
+
 	for _ , altcomp := range gset.Alts {
-		path := altcomp.Path(statistic)
-		if fullreps {
-			path = altcomp.PathFull(statistic)
+		// path := altcomp.Path(statistic)
+		// if fullreps {
+		// 	path = altcomp.PathFull(statistic)
+		// }
+		// fmt.Println("path to subtract:", path)
+		altcfgi := FindMatchingConfig(altcomp, cfgs)
+		if altcfgi == -1 {
+			return "", fmt.Errorf("no config for altcomp %v", altcomp)
 		}
-		fmt.Println("path to subtract:", path)
+		path := cfgs[altcfgi].OutPrefix + "_pfst_plfmt_tm_perc_thresh_merge.bed"
+
 		alt, err := ReadPath(path, func(r io.Reader) (permuvals.Bed, error) {
 			return permuvals.GetBed(r, path)
 		})
@@ -217,6 +227,7 @@ func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps boo
 			fmt.Fprintln(os.Stderr,"Error2!")
 			return "", err
 		}
+
 		if subfull {
 			good = good.SubtractFullsBed(alt)
 		} else {
@@ -224,11 +235,14 @@ func SubtractAlts(gset GoodAndAlts, statistic string, subfull bool, fullreps boo
 		}
 	}
 
-	if subfull {
-		outpath = gset.Good.OutputPrefix(statistic) + "_subfulls.bed"
-	} else {
-		outpath = gset.Good.OutputPrefix(statistic) + ".bed"
-	}
+	// if subfull {
+	// 	outpath = gset.Good.OutputPrefix(statistic) + "_subfulls.bed"
+	// } else {
+	// 	outpath = gset.Good.OutputPrefix(statistic) + ".bed"
+	// }
+
+	outpath = cfg.Subtractions
+
 	ovlconn, err := os.Create(outpath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr,"Error3!")
@@ -246,6 +260,8 @@ type subtractAllArgs struct {
 	statistic string
 	subfull bool
 	fullreps bool
+	cfg ComboConfig
+	cfgs []ComboConfig
 }
 
 type subtractAllOuts struct {
@@ -253,23 +269,47 @@ type subtractAllOuts struct {
 	err error
 }
 
-func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool) []subtractAllArgs {
-	njobs := len(gsets) * len(statistics)
+func aggregateSubtractArgs(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool, cfgs []ComboConfig) (out []subtractAllArgs, missing []GoodAndAlts) {
+	njobs := len(statistics) * len(gsets)
 	mod := len(statistics)
-	out := make([]subtractAllArgs, njobs)
-	for job, _ := range out {
-		out[job].gset = gsets[job/mod]
-		out[job].statistic = statistics[job%mod]
-		out[job].subfull = subfull
+	for job := 0; job < njobs; job++ {
+		gset := gsets[job/mod]
+		cfgi := FindMatchingConfig(gset.Good, cfgs)
+		if cfgi == -1 {
+			// panic(fmt.Errorf("couldn't find matching config for gset %v", gset))
+			missing = append(missing, gset)
+			continue
+		}
+
+		args := subtractAllArgs{}
+
+		args.gset = gset
+		args.statistic = statistics[job%mod]
+		args.subfull = subfull
+		args.cfg = cfgs[cfgi]
+		args.cfgs = cfgs
+		out = append(out, args)
 	}
-	return out
+	return out, missing
 }
 
-func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool, threads int) (outpaths []string, errs []error) {
-	args := aggregateSubtractArgs(gsets, statistics, subfull, fullreps)
+// _fst_plfmt.bed
+// _pfst_plfmt.bed
+// _pfst_plfmt_noslop.bed
+// _pfst_plfmt_tm_perc_unexpanded_thresh_merge.bed
+// _pfst_plfmt_tm_perc_unexpanded_thresholded.bed
+// _plot_pfst_fst.png
+// _selec_plfmt.bed
+// _subtractionsbed_subfulls.bed_plfmt.bed
+
+func SubtractAllAlts(gsets []GoodAndAlts, statistics []string, subfull, fullreps bool, threads int, cfgs []ComboConfig) (outpaths []string, errs []error) {
+	args, missing := aggregateSubtractArgs(gsets, statistics, subfull, fullreps, cfgs)
+	if len(missing) > 0 {
+		fmt.Println("missing gsets:", missing)
+	}
 	f := func(a subtractAllArgs) subtractAllOuts {
 		var o subtractAllOuts
-		o.outpath, o.err = SubtractAlts(a.gset, a.statistic, a.subfull, a.fullreps)
+		o.outpath, o.err = SubtractAlts(a.gset, a.statistic, a.subfull, a.fullreps, a.cfg, a.cfgs)
 		return o
 	}
 	out := pmap.Map(f, args, threads)
@@ -289,6 +329,50 @@ func PercTMASets(sets PlotSets, percentile float64) (errors []error) {
 	return pmap.Map(f, sets, -1)
 }
 
+func PartialSubtract(flags Plot4Flags, goodsAndAlts []GoodAndAlts, statistics []string, cfgs []ComboConfig) {
+	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads, cfgs)
+	for _, err := range errors {
+		if err != nil { fmt.Fprintln(os.Stderr, err) }
+	}
+
+	pathsconn, err := os.Create("goodbedpaths.txt")
+	if err != nil { panic(err) }
+	defer pathsconn.Close()
+	for _, path := range outpaths {
+		fmt.Fprintln(pathsconn, path)
+	}
+}
+
+func FindMatchingConfig(g Comp, cs []ComboConfig) int {
+	for i, c := range cs {
+		if MatchConfigAndGoodAndAlts(c, g) {
+			return i
+		}
+	}
+	return -1
+}
+
+func MatchConfigAndGoodAndAlts(c ComboConfig, g Comp) bool {
+	var t []bool
+	t = append(t, c.Treatment.Breed == g.Breed1)
+	t = append(t, c.Treatment.Bit == g.Bit1)
+	t = append(t, c.Treatment.Time == fmt.Sprintf("%v", g.Gen1))
+	t = append(t, c.Treatment.Replicate == fmt.Sprintf("%v", g.Rep1) || c.Treatment.Replicate == fmt.Sprintf("R%v", g.Rep1) || (c.Treatment.Replicate == "All" && g.Rep1 == 0))
+
+	t = append(t, c.Treatment2.Breed == g.Breed2)
+	t = append(t, c.Treatment2.Bit == g.Bit2)
+	t = append(t, c.Treatment2.Time == fmt.Sprintf("%v", g.Gen2))
+	t = append(t, c.Treatment2.Replicate == fmt.Sprintf("%v", g.Rep2) || c.Treatment2.Replicate == fmt.Sprintf("R%v", g.Rep2) || (c.Treatment2.Replicate == "All" && g.Rep2 == 0))
+
+	for _, test := range t {
+		if !test {
+			return false
+		}
+	}
+
+	return true
+}
+
 func RunGood4Plots() {
 	flags := GetPlot4Flags()
 	// plot_sets := ReadPlotSets(os.Stdin)
@@ -301,24 +385,13 @@ func RunGood4Plots() {
 
 	errors := PercTMASets(plot_sets, flags.Percentile)
 	for _, err := range errors {
-		if err != nil { panic(err) }
+		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}
 
 	goodsAndAlts := PrebuiltGoodAndAlts()
 	statistics := []string{"pFst", "Fst", "Selec"}
-	outpaths, errors := SubtractAllAlts(goodsAndAlts, statistics, false, flags.FullReps, flags.Threads)
-	for _, err := range errors {
-		if err != nil { fmt.Fprintln(os.Stderr, err) }
-	}
 
-	pathsconn, err := os.Create("goodbedpaths.txt")
-	if err != nil { panic(err) }
-	defer pathsconn.Close()
-	for _, path := range outpaths {
-		fmt.Fprintln(pathsconn, path)
-	}
-
-	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads)
+	outpaths_f, errors_f := SubtractAllAlts(goodsAndAlts, statistics, true, flags.FullReps, flags.Threads, cfgs)
 	for _, err := range errors_f {
 		if err != nil { fmt.Fprintln(os.Stderr, err) }
 	}

@@ -2,30 +2,12 @@ package fthresh
 
 import (
 	"os/exec"
-	"fmt"
 	"os"
 	"testing"
 	"io/ioutil"
 )
 
-var PTMInput string = `one	0	1	1
-one	1	2	5
-one	2	3	3
-one	3	4	4
-one	4	5	2
-`
-
-func WritePTMInput() (path string, err error) {
-	file, err := ioutil.TempFile(".", "TestPTMIn.bed")
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-	fmt.Fprint(file, PTMInput)
-	return file.Name(), nil
-}
-
-func TestPercThreshAndMerge(t *testing.T) {
+func TestPercThreshAndMergeFull(t *testing.T) {
 	inpath, err := WritePTMInput()
 	if err != nil {
 		panic(err)

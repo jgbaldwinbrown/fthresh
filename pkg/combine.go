@@ -146,6 +146,9 @@ func (f Fst) FstIdents() []Ident {
 func (f Fst) SelecIdent() (out Ident) {
 	re := regexp.MustCompile(`([a-z]*)_[a-z]*_([a-z]*).*(_repl([0-9]*))?`)
 	matches := re.FindStringSubmatch(f.Ident)
+	if len(matches) < 5 {
+		return out
+	}
 	out.Breed = matches[1]
 	out.Bit = matches[2]
 	if matches[4] == "" {
@@ -163,18 +166,45 @@ func (f Fst) MatchSelec(selec Fst) bool {
 }
 
 // rk_stuff/louse/s_estimation/partials/window/white_pooled_unbitted_tle30_s_coeff_win1k.txt
+// func Combine(fsts []Fst, pfsts []Fst, selecs []Fst) (combos []Combo) {
+// 	for _, fst := range fsts {
+// 		for _, pfst := range pfsts {
+// 			if fst.Ident == pfst.Ident {
+// 				for _, selec := range selecs {
+// 					if fst.MatchSelec(selec) {
+// 						combos = append(combos, Combo{fst, pfst, selec})
+// 						break
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return
+// }
+
 func Combine(fsts []Fst, pfsts []Fst, selecs []Fst) (combos []Combo) {
 	for _, fst := range fsts {
-		for _, pfst := range pfsts {
-			if fst.Ident == pfst.Ident {
-				for _, selec := range selecs {
-					if fst.MatchSelec(selec) {
-						combos = append(combos, Combo{fst, pfst, selec})
-						break
-					}
-				}
+		pfst := Fst{}
+		foundpfst := false
+		for _, p := range pfsts {
+			if fst.Ident == p.Ident {
+				pfst = p
+				foundpfst = true
+				break
 			}
 		}
+		if !foundpfst {
+			break
+		}
+
+		selec := Fst{}
+		for _, s := range selecs {
+			if fst.MatchSelec(selec) {
+				selec = s
+				break
+			}
+		}
+		combos = append(combos, Combo{fst, pfst, selec})
 	}
 	return
 }

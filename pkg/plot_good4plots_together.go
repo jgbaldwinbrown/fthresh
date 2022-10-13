@@ -3,6 +3,7 @@ package fthresh
 // _pfst_plfmt.bed
 
 import (
+	"sort"
 	"flag"
 	"fmt"
 	"os"
@@ -27,12 +28,12 @@ plot_goods_pfst_together \
 `,
 		pfstpaths[0],
 		sigpaths[0],
+		pfstpaths[1],
+		sigpaths[1],
 		pfstpaths[2],
 		sigpaths[2],
-		pfstpaths[4],
-		sigpaths[4],
-		pfstpaths[6],
-		sigpaths[6],
+		pfstpaths[3],
+		sigpaths[3],
 		"good4plots_together.png",
 	)
 }
@@ -55,18 +56,18 @@ plot_goods_pfst_together_nowin \
 `,
 		pfstpaths[0],
 		sigpaths[0],
+		pfstpaths[1],
+		sigpaths[1],
 		pfstpaths[2],
 		sigpaths[2],
-		pfstpaths[4],
-		sigpaths[4],
-		pfstpaths[6],
-		sigpaths[6],
+		pfstpaths[3],
+		sigpaths[3],
 		"good4plots_together_nowin.png",
 	)
 }
 
 func PlotSetToTogetherScript() {
-	plotsets := ReadCfgPlotSets(os.Stdin)
+	plotsets := ReadAllrepExpPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
@@ -77,12 +78,12 @@ func PlotSetToTogetherScript() {
 }
 
 func PlotSetToTogetherSubFullScript() {
-	plotsets := ReadCfgPlotSets(os.Stdin)
+	plotsets := ReadAllrepExpPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
 		pfstpaths = append(pfstpaths, set.Out + "_pfst_plfmt.bed")
-		sigpaths = append(sigpaths, SubFullPath(set.GoodPfstSpans))
+		sigpaths = append(sigpaths, set.GoodPfstSpans)
 	}
 	FprintPlotTogether(os.Stdout, pfstpaths, sigpaths)
 }
@@ -117,7 +118,8 @@ func psIndexTop(rep string, breed string, bit string) int {
 		"unbitted": 0,
 		"bitted": 1,
 	}
-	return 8 * m[rep] + 2 * m[breed] + m[bit]
+	// return 8 * m[rep] + 2 * m[breed] + m[bit]
+	return 4 * m[rep] + m[breed]
 }
 
 func psIndexReps(breed string, bit string) []int {
@@ -174,17 +176,19 @@ func FprintPlotTogetherReps(w io.Writer, pfstpaths, sigpaths []string) {
 }
 
 func PlotSetToTogetherSubFullScriptReps() {
-	plotsets := ReadCfgPlotSets(os.Stdin)
+	plotsets := ReadEveryRepExpPlotSets(os.Stdin)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
 		pfstpaths = append(pfstpaths, set.Out + "_pfst_plfmt.bed")
-		sigpaths = append(sigpaths, SubFullPath(set.GoodPfstSpans))
+		sigpaths = append(sigpaths, set.GoodPfstSpans)
 	}
 	FprintPlotTogetherReps(os.Stdout, pfstpaths, sigpaths)
 }
 
 func FprintPlotTogetherRepsTopBreed(w io.Writer, pfstpaths, sigpaths []string, breed string, fullreps, nowin bool) {
+	fmt.Println("pfstpaths:", pfstpaths)
+	fmt.Println("sigpaths:", sigpaths)
 	idxs := psIndexRepsTop(breed, "unbitted")
 	frstring := "partialreps"
 	if fullreps {
@@ -237,18 +241,95 @@ func FprintPlotTogetherRepsTop(w io.Writer, pfstpaths, sigpaths []string, fullre
 	}
 }
 
+func BreedOrder(breed string) int {
+	switch breed {
+	case "black": return 0
+	case "white": return 1
+	case "figurita": return 2
+	case "runt": return 3
+	case "feral": return 4
+	default: return 5
+	}
+	return 5
+}
+
+func RepOrder(breed string) int {
+	switch breed {
+	case "All": return 0
+	case "1": return 1
+	case "2": return 2
+	case "3": return 3
+	case "4": return 4
+	default: return 5
+	}
+	return 5
+}
+
+func FilterAllrepExp(cfgs []ComboConfig) []ComboConfig {
+	var out []ComboConfig
+	for _, cfg := range cfgs {
+		if cfg.Treatment.Replicate == "All" && cfg.ComparisonType == "experimental" {
+			out = append(out, cfg)
+		}
+	}
+	less := func(i, j int) bool {
+		return BreedOrder(out[i].Treatment.Breed) < BreedOrder(out[j].Treatment.Breed)
+	}
+	sort.Slice(out, less)
+	return out
+}
+
+func FilterEveryRepExp(cfgs []ComboConfig) []ComboConfig {
+	var out []ComboConfig
+	for _, cfg := range cfgs {
+		if cfg.ComparisonType == "experimental" {
+			out = append(out, cfg)
+		}
+	}
+	less := func(i, j int) bool {
+		if RepOrder(out[i].Treatment.Replicate) < RepOrder(out[j].Treatment.Replicate) {
+			return true
+		}
+		if RepOrder(out[i].Treatment.Replicate) > RepOrder(out[j].Treatment.Replicate) {
+			return false
+		}
+		return BreedOrder(out[i].Treatment.Breed) < BreedOrder(out[j].Treatment.Breed)
+	}
+	sort.Slice(out, less)
+	return out
+}
+
+func ReadAllrepExpPlotSets(r io.Reader) []PlotSet {
+	cfgs, err := ReadComboConfig(r)
+	if err != nil {
+		panic(err)
+	}
+	fcfgs := FilterAllrepExp(cfgs)
+	return ConfigsToPlotSets(fcfgs...)
+}
+
+func ReadEveryRepExpPlotSets(r io.Reader) []PlotSet {
+	cfgs, err := ReadComboConfig(r)
+	if err != nil {
+		panic(err)
+	}
+	fcfgs := FilterEveryRepExp(cfgs)
+	return ConfigsToPlotSets(fcfgs...)
+}
+
 func PlotSetToTogetherSubFullScriptRepsTop() {
 	var fullreps bool
 	var nowin bool
 	flag.BoolVar(&fullreps, "f", false, "use all indivs from each rep")
 	flag.BoolVar(&nowin, "n", false, "use unwindowed values")
 	flag.Parse()
-	plotsets := ReadCfgPlotSets(os.Stdin)
+	plotsets := ReadEveryRepExpPlotSets(os.Stdin)
+	fmt.Println("plotsets from ReadEveryRepExpPlotSets", plotsets)
 	pfstpaths := []string{}
 	sigpaths := []string{}
 	for _, set := range plotsets {
 		pfstpaths = append(pfstpaths, set.Out + "_pfst_plfmt.bed")
-		sigpaths = append(sigpaths, SubFullPath(set.GoodPfstSpans))
+		sigpaths = append(sigpaths, set.GoodPfstSpans)
 	}
 	FprintPlotTogetherRepsTop(os.Stdout, pfstpaths, sigpaths, fullreps, nowin)
 }

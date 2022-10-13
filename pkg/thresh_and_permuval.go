@@ -51,12 +51,16 @@ func ConfigsToPlotSets(cs ...ComboConfig) []PlotSet {
 	return out
 }
 
-func ReadCfgPlotSets(r io.Reader) PlotSets {
+func ReadCfgsAndPlotSets(r io.Reader) ([]ComboConfig, PlotSets) {
 	cfgs, err := ReadComboConfig(r)
 	if err != nil {
 		panic(err)
 	}
-	return ConfigsToPlotSets(cfgs...)
+	return cfgs, ConfigsToPlotSets(cfgs...)
+}
+func ReadCfgPlotSets(r io.Reader) PlotSets {
+	_, plotsets := ReadCfgsAndPlotSets(r)
+	return plotsets
 }
 
 func ReadPlotSets(r io.Reader) (ps PlotSets) {
@@ -71,7 +75,12 @@ func MergeHitsString() string {
 	return `#!/bin/bash
 set -e
 
-mawk -F "\t" -v OFS="\t" '$'${1}' >= '${2}'{$3=sprintf("%d", $3); print $0}' \
+mawk -F "\t" -v OFS="\t" '$'${1}' >= '${2}'{
+	$3=sprintf("%d", $3);
+	if ($2 < 0) { $2 = 0 };
+	if ($3 < 0) { $3 = 0 };
+	print $0
+}' \
 > ${3}_thresholded.bed
 
 bedtools merge -i ${3}_thresholded.bed > ${3}_thresh_merge.bed`
